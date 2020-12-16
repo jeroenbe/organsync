@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.experimental import enable_iterative_imputer
 from sklearn import preprocessing
 from sklearn.impute import IterativeImputer
+from sklearn.model_selection import train_test_split
 
 import click
 
@@ -632,6 +633,9 @@ def _make_liver_data(location, destination):
     for c in cats:
         liverdrop[c] = liverdrop[c].cat.codes
 
+    # Drop rows where no survival time is registered (little over 700)
+    liverdrop = liverdrop[pd.notnull(liverdrop['PTIME'])]
+
     # NORMALISE
     targets=['PSTATUS', 'PTIME']
     conts = np.setdiff1d(liverdrop.columns.values, [*cats, *targets])
@@ -639,12 +643,19 @@ def _make_liver_data(location, destination):
     scaler = preprocessing.StandardScaler()
     liverdrop[conts] = scaler.fit_transform(liverdrop[conts])
 
+    
+    # SPLIT IN SUBSETS (before IMPUTE to avoid leakage)
+    train, test = train_test_split(liverdrop, test_size=.2)
+    
     # IMPUTE
     MICE = IterativeImputer(random_state=0)
-    liverdrop[conts] = MICE.fit_transform(liverdrop[conts])
+    train[conts] = MICE.fit_transform(train[conts])
+    test[conts] = MICE.fit_transform(test[conts])
     
     # SAVE
-    liverdrop.to_csv(f'{destination}/liver_processed.csv')
+    train.to_csv(f'{destination}/liver_processed_train.csv')
+    test.to_csv(f'{destination}/liver_processed_test.csv')
+
     np.save(f'{destination}/liver_processed_conts.npy', conts)
     np.save(f'{destination}/liver_processed_cats.npy', cats)
     joblib.dump(scaler, f'{destination}/liver_processed_scaler.pkl')
