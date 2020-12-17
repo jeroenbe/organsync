@@ -23,7 +23,7 @@ class OrganSync_Network(pl.LightningModule):
     #   and survival analysis.
 
     def __init__(self, input_dim, hidden_dim, output_dim, lr, gamma, weight_decay, num_hidden_layers: int=1):
-        super(OrganSync_Network, self).__init__()
+        super().__init__()
 
         self.lr = lr
         self.gamma = gamma
@@ -46,6 +46,7 @@ class OrganSync_Network(pl.LightningModule):
         self.beta = nn.Linear(self.output_dim, 1)           # This predicts Y
 
         self.loss = MeanSquaredError()
+        self.save_hyperparameters()
 
 
     # ~~~~~~~~~~~~~
