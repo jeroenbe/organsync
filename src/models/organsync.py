@@ -22,7 +22,16 @@ class OrganSync_Network(pl.LightningModule):
     #   synthetic controls used for ITE predictions
     #   and survival analysis.
 
-    def __init__(self, input_dim, hidden_dim, output_dim, lr, gamma, weight_decay, num_hidden_layers: int=1):
+    def __init__(
+            self,
+            input_dim,
+            hidden_dim,
+            output_dim,
+            lr, gamma, weight_decay,
+            num_hidden_layers: int=1,
+            activation_type='relu',
+            dropout_prob: float=.0):
+
         super().__init__()
 
         self.lr = lr
@@ -33,14 +42,23 @@ class OrganSync_Network(pl.LightningModule):
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
 
-        hidden_layers = np.array([(nn.Linear(self.hidden_dim, self.hidden_dim), nn.ReLU()) for _ in range(num_hidden_layers)]).flatten()
+        activation_functions = {
+            'relu': nn.ReLU,
+            'leaky_relu': nn.LeakyReLU
+        }
+        activation = activation_functions[activation_type]
+
+        hidden_layers = np.array([(
+            nn.Linear(self.hidden_dim, self.hidden_dim), 
+            activation(),
+            nn.Dropout(p=dropout_prob)) for _ in range(num_hidden_layers)]).flatten()
 
         self.representation = nn.Sequential(                # This predicts u
             nn.Linear(self.input_dim, self.hidden_dim),
-            nn.ReLU(),
+            activation(),
             *hidden_layers,
             nn.Linear(self.hidden_dim, self.output_dim),
-            nn.ReLU()
+            activation()
         )
 
         self.beta = nn.Linear(self.output_dim, 1)           # This predicts Y
@@ -112,21 +130,38 @@ class OrganSync_Network(pl.LightningModule):
 @click.option('--group', type=str, default=None)
 @click.option('--data_dir', type=str, default='./data/processed')
 @click.option('--num_hidden_layers', type=int, default=1)
-def train(lr, gamma, weight_decay, epochs, wb_run, batch_size, group, data_dir, num_hidden_layers):
+@click.option('--output_dim', type=int, default=8)
+@click.option('--hidden_dim', type=int, default=16)
+@click.option('--activation_type', type=str, default='relu') # 'relu', 'leaky_relu'
+@click.option('--dropout_prob', type=float, default=.0)
+def train(
+        lr,
+        gamma,
+        weight_decay,
+        epochs,
+        wb_run,
+        batch_size,
+        group,
+        data_dir,
+        num_hidden_layers,
+        output_dim,
+        hidden_dim,
+        activation_type,
+        dropout_prob):
 
     # LOAD DATA
     UNOS = UNOSDataModule(data_dir, batch_size=batch_size)
 
     # CONSTRUCT MODEL
     input_dim = UNOS.size(1)
-    hidden_dim = 16
-    output_dim = 8
     model = OrganSync_Network(
         input_dim=input_dim, 
         hidden_dim=hidden_dim,
         num_hidden_layers=num_hidden_layers,
         output_dim=output_dim, 
-        lr=lr, gamma=gamma, weight_decay=weight_decay).double()
+        lr=lr, gamma=gamma, weight_decay=weight_decay,
+        activation_type=activation_type,
+        dropout_prob=dropout_prob).double()
 
     # SETUP LOGGING CALLBACKS
     wb_logger = WandbLogger(project=wb_run, log_model=True, group=group)

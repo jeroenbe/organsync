@@ -26,10 +26,10 @@ class UNOSDataModule(pl.LightningDataModule):
         self.min = Y_train.min()
 
         Y_train -= self.min 
-        Y_train /= (self.max/4)
+        Y_train /= self.max
 
         Y_test -= self.min
-        Y_test /= (self.max/4)
+        Y_test /= self.max
 
         if stage == 'fit' or stage is None:
             X = torch.tensor(X_train.to_numpy(), dtype=torch.double)

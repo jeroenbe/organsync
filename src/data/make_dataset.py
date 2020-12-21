@@ -623,7 +623,7 @@ def _make_liver_data(location, destination):
         'MALIG_TCR', 'MALIG_TRR', 'MED_COND_TRR','NON_HRT_DON','ON_VENT_TRR','PORTAL_VEIN_TCR', 'PORTAL_VEIN_TRR',
         'PREV_AB_SURG_TCR', 'PREV_AB_SURG_TRR', 'PREV_TX', 'PREV_TX_ANY', 'PRI_PAYMENT_TCR1', 'PRI_PAYMENT_TRR1',
         'PROTEIN_URINE', 'PSTATUS','PT_DIURETICS_DON','PT_STEROIDS_DON', 'PT_T3_DON','PT_T4_DON','PULM_INF_DON',
-        'RECOV_OUT_US','REGION', 'SHARE_TY', 'SKIN_CANCER_DON','TATTOOS', 'TIPSS_TCR', 'TIPSS_TRR', 'TRANSFUS_TERM_DON', 
+        'RECOV_OUT_US','REGION', 'SHARE_TY', 'SKIN_CANCER_DON','TATTOOS', 'TIPSS_TCR', 'TIPSS_TRR', 'TRANSFUS_TERM_DON',
         'TXLIV', 'URINE_INF_DON', 'VASODIL_DON','VDRL_DON', 'VENTILATOR_TCR','WORK_INCOME_TCR','WORK_INCOME_TRR',
         'abo', 'abodon', 'cancer', 'coronary','death_mech_don_group', 'deathcirc', 'diabbin', 'diag1', 'insdiab',
         'macro','meldstat', 'meldstatinit','micro', 'status1', 'statushcc','DIABETES_DON','DGN2_TCR2', 'DGN_TCR1','DDAVP_DON']
