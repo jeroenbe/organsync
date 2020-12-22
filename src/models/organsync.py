@@ -91,7 +91,7 @@ class OrganSync_Network(pl.LightningModule):
     def shared_step(self, batch):
         x, o, y, _ = batch
 
-        u = torch.cat((x,o), dim=1) # TODO: check dim_size
+        u = torch.cat((x,o), dim=1)
         y_ = self.forward(u)
         loss = self.loss(y_, y)
 
@@ -112,8 +112,17 @@ class OrganSync_Network(pl.LightningModule):
         return loss
 
     def test_step(self, batch, ix):
-        # Should rethink the way we test... we need an unbiased testset
         loss = self.shared_step(batch)
+
+        #data_min, data_max = self.trainer.datamodule.min, self.trainer.datamodule.max
+        #scale_constant = self.trainer.datamodule.scale_constant
+
+        loss = torch.sqrt(loss) 
+        #loss *= ((data_max - data_min) / scale_constant).to_numpy()
+        #loss -= data_min.to_numpy()
+
+        loss *= self.trainer.datamodule.std
+        loss += self.trainer.datamodule.mean
 
         self.log('test_loss', loss, on_epoch=True)
 

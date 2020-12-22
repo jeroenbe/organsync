@@ -17,6 +17,8 @@ class UNOSDataModule(pl.LightningDataModule):
 
         self.dims = (0, 141)
 
+        self.scale_constant = 4
+
 
     def setup(self, stage=None):
         # Data should be of form: {(X_i, O_ij, Y_i, delta_i)}
@@ -25,11 +27,20 @@ class UNOSDataModule(pl.LightningDataModule):
         self.max = Y_train.max()
         self.min = Y_train.min()
 
-        Y_train -= self.min 
-        Y_train /= self.max
+        self.mean = Y_train.mean().to_numpy()
+        self.std = Y_train.std().to_numpy()
 
-        Y_test -= self.min
-        Y_test /= self.max
+        Y_train -= self.mean
+        Y_train /= self.std
+
+        Y_test -= self.mean
+        Y_test /= self.std
+
+        #Y_train -= self.min 
+        #Y_train /= ((self.max - self.min) / self.scale_constant)
+
+        #Y_test -= self.min
+        #Y_test /= ((self.max - self.min)/ self.scale_constant)
 
         if stage == 'fit' or stage is None:
             X = torch.tensor(X_train.to_numpy(), dtype=torch.double)
