@@ -40,11 +40,11 @@ def get_data_tuples(location):
     X_train = liver_train[x_cols]
     O_train = liver_train[o_cols]
     Y_train = liver_train[['PTIME']] 
-    del_train = liver_train[['PSTATUS']] # PSTATUS is a censor variable
+    del_train = liver_train[['PSTATUS']] - 1 # PSTATUS is a censor variable
 
     X_test = liver_test[x_cols]
     O_test = liver_test[o_cols]
     Y_test = liver_test[['PTIME']]
-    del_test = liver_test[['PSTATUS']]
+    del_test = liver_test[['PSTATUS']] - 1
 
     return X_train, O_train, Y_train, del_train, X_test, O_test, Y_test, del_test

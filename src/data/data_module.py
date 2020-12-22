@@ -24,6 +24,17 @@ class UNOSDataModule(pl.LightningDataModule):
         # Data should be of form: {(X_i, O_ij, Y_i, delta_i)}
 
         X_train, O_train, Y_train, del_train, X_test, O_test, Y_test, del_test = get_data_tuples(self.data_dir)
+        X_train = X_train[del_train.PSTATUS > 0]
+        O_train = O_train[del_train.PSTATUS > 0]
+        Y_train = Y_train[del_train.PSTATUS > 0]
+        del_train = del_train[del_train.PSTATUS > 0]
+
+        X_test = X_test[del_test.PSTATUS > 0]
+        O_test = O_test[del_test.PSTATUS > 0]
+        Y_test = Y_test[del_test.PSTATUS > 0]
+        del_test = del_test[del_test.PSTATUS > 0]
+
+
         self.max = Y_train.max()
         self.min = Y_train.min()
 
