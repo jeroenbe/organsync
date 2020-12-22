@@ -120,7 +120,7 @@ class OrganSync_Network(pl.LightningModule):
         y_ = self.forward(u).cpu()
 
         # SCALE
-        mean, std = self.trainer.datamodule.mean, self.tran.datamodule.std
+        mean, std = self.trainer.datamodule.mean, self.trainer.datamodule.std
         y = y * std + mean
         y_ = y_ * std + mean
 
