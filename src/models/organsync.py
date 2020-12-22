@@ -55,6 +55,8 @@ class OrganSync_Network(pl.LightningModule):
 
         self.representation = nn.Sequential(                # This predicts u
             nn.Linear(self.input_dim, self.hidden_dim),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
             activation(),
             *hidden_layers,
             nn.Linear(self.hidden_dim, self.output_dim),
