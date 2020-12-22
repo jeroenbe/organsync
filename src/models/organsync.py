@@ -112,19 +112,21 @@ class OrganSync_Network(pl.LightningModule):
         return loss
 
     def test_step(self, batch, ix):
-        loss = self.shared_step(batch)
+        x, o, y, _ = batch
+        y = y.cpu()
+        
+        # PREDICT
+        u = torch.cat((x, o), dim=1)
+        y_ = self.forward(u).cpu()
 
-        #data_min, data_max = self.trainer.datamodule.min, self.trainer.datamodule.max
-        #scale_constant = self.trainer.datamodule.scale_constant
+        # SCALE
+        mean, std = self.trainer.datamodule.mean, self.tran.datamodule.std
+        y = y * std + mean
+        y_ = y_ * std + mean
 
-        loss = torch.sqrt(loss) 
-        #loss *= ((data_max - data_min) / scale_constant).to_numpy()
-        #loss -= data_min.to_numpy()
+        loss = torch.abs(y - y_)
 
-        loss *= self.trainer.datamodule.std
-        loss += self.trainer.datamodule.mean
-
-        self.log('test_loss', loss, on_epoch=True)
+        self.log('test_loss - mean difference in days', loss, on_epoch=True)
 
         return loss
 
