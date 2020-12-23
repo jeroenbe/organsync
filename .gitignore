@@ -7,3 +7,5 @@ __init__.py
 /notebooks/Untitled.ipynb
 *.ckpt
 lightning_logs
+data_exploration-checkpoint.ipynb
+model_exploration-checkpoint.ipynb

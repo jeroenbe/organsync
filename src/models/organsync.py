@@ -11,7 +11,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.metrics import MeanSquaredError
 
-from src.data.data_module import UNOSDataModule
+from src.data.data_module import UNOSDataModule, UKRegDataModule
 
 
 
@@ -95,6 +95,7 @@ class OrganSync_Network(pl.LightningModule):
 
         u = torch.cat((x,o), dim=1)
         y_ = self.forward(u)
+
         loss = self.loss(y_, y)
 
         return loss
@@ -141,6 +142,7 @@ class OrganSync_Network(pl.LightningModule):
 @click.option('--wb_run', type=str, default='organsync-net')
 @click.option('--batch_size', type=int, default=128)
 @click.option('--group', type=str, default=None)
+@click.option('--data', type=str, default='UNOS')
 @click.option('--data_dir', type=str, default='./data/processed')
 @click.option('--num_hidden_layers', type=int, default=1)
 @click.option('--output_dim', type=int, default=8)
@@ -155,6 +157,7 @@ def train(
         wb_run,
         batch_size,
         group,
+        data,
         data_dir,
         num_hidden_layers,
         output_dim,
@@ -163,10 +166,14 @@ def train(
         dropout_prob):
 
     # LOAD DATA
-    UNOS = UNOSDataModule(data_dir, batch_size=batch_size)
+    if data == 'UNOS':
+        dm = UNOSDataModule(data_dir, batch_size=batch_size)
+    else:
+        dm = UKRegDataModule(data_dir, batch_size=batch_size)
+    #dm.setup(stage='fit')
 
     # CONSTRUCT MODEL
-    input_dim = UNOS.size(1)
+    input_dim = dm.size(1)
     model = OrganSync_Network(
         input_dim=input_dim, 
         hidden_dim=hidden_dim,
@@ -185,10 +192,10 @@ def train(
 
     # TRAIN NETWORK
     trainer = Trainer(logger=wb_logger, callbacks=[checkpoint_callback], max_epochs=epochs, gpus=gpus)
-    trainer.fit(model, UNOS)
+    trainer.fit(model, datamodule=dm)
 
     # TEST NETWORK
-    trainer.test()
+    trainer.test(datamodule=dm)
     
     wandb.finish()
 
