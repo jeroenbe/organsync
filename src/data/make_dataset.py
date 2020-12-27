@@ -9,29 +9,46 @@ from sklearn.model_selection import train_test_split
 
 import click
 
+# OWN MODULES
+from utils import x_cols, o_cols
 
 
-def _make_liver_data(location, destination):
+
+def _make_liver_data(location, destination, replace_organ):
     liver=pd.read_csv(location, na_values=' ')
+
+    # ONLY USE PRESENT COLS
+    x_cols_intersected = np.intersect1d(liver.columns.values, x_cols)
+    o_cols_intersected = np.intersect1d(liver.columns.values, o_cols)
 
     #Removing cases
 
     # Remove all cases where a transplant date is not present, indicating a transplant never occurred
     #   (-> this is agreed upon censoring)
-    liver=liver.dropna(subset=['TX_YEAR'])
+    #liver=liver.dropna(subset=['TX_YEAR'])
+
+    # IF NON-TRANSPLANTS ARE STILL IN THE LIST:
+    liver['RECEIVED_TX'] = liver.TX_YEAR.notnull().astype(int)
+    x_cols_intersected = np.append(x_cols_intersected, 'RECEIVED_TX')
+    liver.loc[liver.TX_YEAR.isnull(), o_cols_intersected] = liver.loc[liver.TX_YEAR.isnull(), o_cols_intersected].replace(np.nan, replace_organ)
+
+    print(liver.RECEIVED_TX.sum())
 
     # Keep all liver transplants >= year 2005 as this is when better data is available
-    liver=liver.loc[liver['TX_YEAR'] >= 2005]
+    liver=liver.loc[(liver['TX_YEAR'] >= 2005) | (liver.TX_YEAR.isnull())]
+
 
     # Remove all pediatric transplants
     liver=liver.loc[liver['AGE'] >= 18]
 
     # Remove all living donor transplants
-    liver=liver.loc[liver['DON_TY'] == 'C']
+    liver=liver.loc[(liver['DON_TY'] == 'C') | (liver.TX_YEAR.isnull())]
 
     # Can consider removing multiorgan transplants as other models have excluded these. For now 
     # they will be removed
     liver=liver.loc[liver['MULTIORG'] != 'Y']
+
+    print(liver.RECEIVED_TX.sum())
 
     # Variable pertaining to post-transplantation and therefore should not be used as part of the 
     # model
@@ -67,6 +84,8 @@ def _make_liver_data(location, destination):
     'PRETREAT_MED_DON_OLD','TRANSFUS_INTRAOP_NUM_OLD_DON','TRANSFUS_PRIOR_NUM_OLD_DON','ECMO']
 
     liverdrop=liverdrop.drop(old_variables, axis=1)
+
+    print(liverdrop.RECEIVED_TX.sum())
 
 
     # TODO: Check statement below
@@ -118,7 +137,7 @@ def _make_liver_data(location, destination):
 
     liverdrop=liverdrop.drop(admin, axis=1)
 
-
+    print(liverdrop.RECEIVED_TX.sum())
 
     # These are a list of identifier codes that likely will be dropped. The only code we will not drop now is 
     # 'WL_ID_CODE' as we may use this to link to the liver waitlist csv file at a later time.
@@ -364,7 +383,7 @@ def _make_liver_data(location, destination):
     #liverdrop['ahn']=np.where(((liverdrop.DGN_TCR1==1) | (liverdrop.DGN2_TCR2==1)) ,1,liverdrop.ahn)
 
 
-
+    
 
     # Donor location
     # There is one foregin donor, change this to category 5 so that national and foreign are one category
@@ -622,13 +641,16 @@ def _make_liver_data(location, destination):
         'INIT_ENCEPH','INOTROP_SUPPORT_DON','INSULIN_DON','INTRACRANIAL_CANCER_DON','LIFE_SUP_TCR','LIFE_SUP_TRR',
         'MALIG_TCR', 'MALIG_TRR', 'MED_COND_TRR','NON_HRT_DON','ON_VENT_TRR','PORTAL_VEIN_TCR', 'PORTAL_VEIN_TRR',
         'PREV_AB_SURG_TCR', 'PREV_AB_SURG_TRR', 'PREV_TX', 'PREV_TX_ANY', 'PRI_PAYMENT_TCR1', 'PRI_PAYMENT_TRR1',
-        'PROTEIN_URINE', 'PSTATUS','PT_DIURETICS_DON','PT_STEROIDS_DON', 'PT_T3_DON','PT_T4_DON','PULM_INF_DON',
+        'PROTEIN_URINE', 'PT_DIURETICS_DON','PT_STEROIDS_DON', 'PT_T3_DON','PT_T4_DON','PULM_INF_DON',
         'RECOV_OUT_US','REGION', 'SHARE_TY', 'SKIN_CANCER_DON','TATTOOS', 'TIPSS_TCR', 'TIPSS_TRR', 'TRANSFUS_TERM_DON',
         'TXLIV', 'URINE_INF_DON', 'VASODIL_DON','VDRL_DON', 'VENTILATOR_TCR','WORK_INCOME_TCR','WORK_INCOME_TRR',
         'abo', 'abodon', 'cancer', 'coronary','death_mech_don_group', 'deathcirc', 'diabbin', 'diag1', 'insdiab',
         'macro','meldstat', 'meldstatinit','micro', 'status1', 'statushcc','DIABETES_DON','DGN2_TCR2', 'DGN_TCR1','DDAVP_DON']
 
+
     liverdrop[cats]=liverdrop[cats].astype('category')
+
+    print('653', liverdrop.RECEIVED_TX.sum())
 
     for c in cats:
         liverdrop[c] = liverdrop[c].cat.codes
@@ -641,16 +663,19 @@ def _make_liver_data(location, destination):
     conts = np.setdiff1d(liverdrop.columns.values, [*cats, *targets])
 
     scaler = preprocessing.StandardScaler()
-    liverdrop[conts] = scaler.fit_transform(liverdrop[conts])
+    liverdrop.loc[conts] = scaler.fit_transform(liverdrop[conts])
 
-    
+    # REMOVE CATEGORICAL VARIABLES
+    # liverdrop = liverdrop.drop(cats, axis=1)
+
     # SPLIT IN SUBSETS (before IMPUTE to avoid leakage)
     train, test = train_test_split(liverdrop, test_size=.2)
     
     # IMPUTE
     MICE = IterativeImputer(random_state=0)
-    train[conts] = MICE.fit_transform(train[conts])
-    test[conts] = MICE.fit_transform(test[conts])
+    train.loc[conts] = MICE.fit_transform(train[conts])
+    test.loc[conts] = MICE.fit_transform(test[conts])
+
     
     # SAVE
     train.to_csv(f'{destination}/liver_processed_train.csv')
@@ -664,8 +689,9 @@ def _make_liver_data(location, destination):
 @click.command()
 @click.option('-l', '--location', type=str)
 @click.option('-d', '--destination', type=str)
-def cli(location, destination):
-    _make_liver_data(location, destination)
+@click.option('-r', '--replace_organ', type=int, default=0)
+def cli(location, destination, replace_organ):
+    _make_liver_data(location, destination, replace_organ)
 
 
 if __name__ == "__main__":
