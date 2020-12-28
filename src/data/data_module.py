@@ -14,18 +14,19 @@ from abc import abstractclassmethod
 
 
 # OWN MODULES
-from src.data.utils import x_cols, o_cols
+from src.data.utils import x_cols, o_cols, UNOS_2_UKReg_mapping
 
 # NEXT STEP 1: incorporate make_dataset.py into this (def prepare_data(self))
 # NEXT STEP 2: UNOSDataModule and UKRegDataModule share a lot of code -> make abstract OrganDataModule
 
 
 class OrganDataModule(pl.LightningDataModule):
-    def __init__(self, data_dir: str, batch_size:int, replace_organ: int=-1):
+    def __init__(self, data_dir: str, batch_size:int, replace_organ: int=-1, is_synth: bool=False):
         super().__init__()
 
         self.batch_size = batch_size
         self.data_dir = data_dir
+        self.is_synth = is_synth
 
         self.replace_organ = replace_organ
 
@@ -52,6 +53,12 @@ class OrganDataModule(pl.LightningDataModule):
                                             self._test_processed[self.o_cols],
                                             self._test_processed.Y,
                                             self._test_processed.CENS)
+
+        if self.is_synth:
+            # 1. create Y_train
+            # 2. suffle X and O in test (no bias)
+            # 3. create Y_test
+            pass
         
         if stage == 'fit' or stage is None:
             X = torch.tensor(X_train.to_numpy(), dtype=torch.double)
@@ -114,6 +121,51 @@ class UNOSDataModule(OrganDataModule):
         liver_test.Y /= self.std
 
         self._train_processed, self._test_processed = liver_train, liver_test
+
+class UNOS2UKRegDataModule(OrganDataModule):
+    def __init__(self, data_dir: str, batch_size: int, replace_organ: int=-1):
+        super().__init__(data_dir=data_dir, batch_size=batch_size, replace_organ=replace_organ)
+
+        self.dims = (0, 55)
+
+    def prepare_data(self):
+        liver_train = pd.read_csv(f'{self.data_dir}/liver_processed_train.csv')
+        liver_test = pd.read_csv(f'{self.data_dir}/liver_processed_test.csv')
+
+        self.scaler = joblib.load(f'{self.data_dir}/scaler')
+
+        U2U_mapped = np.array(list(UNOS_2_UKReg_mapping.keys()))
+        x_cols_present = np.intersect1d(U2U_mapped, x_cols)
+        o_cols_present = np.intersect1d(U2U_mapped, o_cols)
+
+        self.x_cols = np.array([UNOS_2_UKReg_mapping[k] for k in x_cols_present])
+        self.o_cols = np.array([UNOS_2_UKReg_mapping[k] for k in o_cols_present])
+
+        # TEMPORARY SOLUTION
+        self.x_cols = ['RAGE', 'RCREAT', 'RINR', 'RSODIUM', 'RALBUMIN',
+            'SERUM_BILIRUBIN', 'INR', 'SERUM_CREATININE', 'SERUM_SODIUM',
+            'regyr', 'RBILIRUBIN', 'PRIMARY_LIVER_DISEASE',  
+            'CENS', 'Y', 'BILIR_SOD', 'BILIR_DG',
+            'RASCITES_0', 'RASCITES_1', 'RASCITES_2', 'RASCITES_3',
+            'RENAL_SUPPORT_-1', 'RENAL_SUPPORT_0', 'RENAL_SUPPORT_1', 'SEX_0',
+            'SEX_1', 'RHCV_-1', 'RHCV_0', 'RHCV_1', 'RHCV_2', 'RHCV_3',
+            'RENCEPH_-1', 'RENCEPH_0', 'RENCEPH_1', 'RENCEPH_2', 'RENCEPH_3',
+            'PATIENT_LOCATION_-1', 'PATIENT_LOCATION_0', 'PATIENT_LOCATION_1',
+            'PATIENT_LOCATION_2', 'RAB_SURGERY_-1', 'RAB_SURGERY_0',
+            'RAB_SURGERY_1', 'RAB_SURGERY_2'
+        ]
+
+        self.o_cols = [
+            'DAGE', 'DBMI', 'DGRP_-1', 'DGRP_0', 'DGRP_1', 
+            'DGRP_DG', 'DGRP_AGE', 'DGRP_RCREA', 'DGRP_RABS',
+             'AGE_CREAT', 'HCV_AGE','AGE_DG', 
+        ]
+
+        self.mean = self.scaler.mean_[-1]
+        self.std = self.scaler.scale_[-1]
+
+        self._train_processed, self._test_processed = liver_train, liver_test
+
 
 
 class UKRegDataModule(OrganDataModule):

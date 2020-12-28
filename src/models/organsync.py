@@ -11,7 +11,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.metrics import MeanSquaredError
 
-from src.data.data_module import UNOSDataModule, UKRegDataModule
+from src.data.data_module import UNOSDataModule, UKRegDataModule, UNOS2UKRegDataModule
 
 
 
@@ -168,6 +168,8 @@ def train(
     # LOAD DATA
     if data == 'UNOS':
         dm = UNOSDataModule(data_dir, batch_size=batch_size)
+    if data == 'U2U':
+        dm = UNOS2UKRegDataModule(data_dir, batch_size=batch_size)
     else:
         dm = UKRegDataModule(data_dir, batch_size=batch_size)
     #dm.setup(stage='fit')

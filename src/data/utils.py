@@ -28,6 +28,78 @@ o_cols = ['AGE_DON','ALCOHOL_HEAVY_DON','ANTIHYPE_DON','ARGININE_DON','BLOOD_INF
     'TATTOOS','TBILI_DON','TRANSFUS_TERM_DON','URINE_INF_DON','VASODIL_DON','VDRL_DON','WGT_KG_DON_CALC',
     'abodon','coronary','death_mech_don_group','deathcirc','dontime','macro','micro']
 
+
+x_cols_unos_ukeld = [
+    'diag1', #'PRIMARY_LIVER_DISEASE' TODO: see corresponding with UKReg (same codes)
+    'AGE', #'reg_age'
+    'GENDER', #'SEX'
+    'INIT_SERUM_CREAT', #'SERUM_CREATININE'
+    'INIT_BILIRUBIN', #'SERUM_BILIRUBIN'
+    'INIT_INR', #'INR'
+    'INIT_SERUM_SODIUM', #'SERUM_SODIUM'
+    #'INIT_DIALYSIS_PRIOR_WEEK', 
+    'DIAL_TX', #'RENAL_SUPPORT', 'RREN_SUP'
+    'MED_COND_TRR', #'PATIENT_LOCATION' TODO: check whether variables correspond to UKReg
+    'LISTYR', #'regyr'
+    #, #'outcome'
+    #, #'RCSPLD1' -> diag1 (above)
+    #, #'RAGE'
+    #, #'RSEX'
+    'HCV_SEROSTATUS', #'RHCV'
+    'CREAT_TX', #'RCREAT'
+    'TBILI_TX', #'RBILIRUBIN'
+    'FINAL_INR', #'RINR'
+    'FINAL_SERUM_SODIUM', #'RSODIUM'
+    #, #'RPOTASSIUM' -> not in UNOS
+    'INIT_ALBUMIN', #'RALBUMIN'
+    #'PREV_AB_SURG_TCR', 
+    'PREV_AB_SURG_TRR', #'RAB_SURGERY'
+    'INIT_ENCEPH', #'RENCEPH'
+    #'INIT_ASCITES', 
+    'ASCITES_TX', #'RASCITES' TODO: this is categorical in UNOS, see how this corresponds to UKReg
+    #, #'PSURV'
+]
+
+o_cols_unos_ukeld = [
+    'AGE_DON', #'DAGE'
+    #'death_mech_don_group', 'deathcirc', #'DCOD' -> TODO: these may vary significantly from UKReg, best to check
+    'BMI_DON_CALC', #'DBMI'
+    'NON_HRT_DON', #'DGRP' -> in UNOS 'NON_HRT_DON' distinguishes between dead donors and circulatory death donors; 
+                   # Living are excluded for now. TODO: check wether codes correspond to UKReg
+]
+
+UNOS_2_UKReg_mapping = {
+        'AGE':                      'RAGE',
+        'AGE_DON':                  'DAGE',
+        'ASCITES_TX':               'RASCITES',                 # TODO: merge
+        'BMI_DON_CALC':             'DBMI',
+        'CREAT_TX':                 'RCREAT',
+        'DIAL_TX':                  'RENAL_SUPPORT',            #, RREN_SUP TODO: merge
+        'FINAL_INR':                'RINR',
+        'FINAL_SERUM_SODIUM':       'RSODIUM',
+        'GENDER':                   'SEX',
+        'HCV_SEROSTATUS':           'RHCV',
+        'INIT_ALBUMIN':             'RALBUMIN',
+        #'INIT_ASCITES':             'RASCITES',                 # TODO: merge
+        'INIT_BILIRUBIN':           'SERUM_BILIRUBIN',
+        #'INIT_DIALYSIS_PRIOR_WEEK': 'RENAL_SUPPORT',            #, RREN_SUP TODO: merge
+        'INIT_ENCEPH':              'RENCEPH',
+        'INIT_INR':                 'INR',
+        'INIT_SERUM_CREAT':         'SERUM_CREATININE',
+        'INIT_SERUM_SODIUM':        'SERUM_SODIUM',
+        'LISTYR':                   'regyr',
+        'MED_COND_TRR':             'PATIENT_LOCATION',
+        'NON_HRT_DON':              'DGRP',
+        #'PREV_AB_SURG_TCR':         'RAB_SURGERY',              # TODO: merge
+        'PREV_AB_SURG_TRR':         'RAB_SURGERY',              # TODO: merge
+        'PTIME':                    'rwtime',
+        'TBILI_TX':                 'RBILIRUBIN',
+        #'death_mech_don_group':     'DCOD',                     # TODO: merge
+        #'deathcirc':                'DCOD',                     # TODO: merge
+        'diag1':                    'PRIMARY_LIVER_DISEASE',
+        'PSTATUS':                  'CENS',
+    }
+
 def get_data_tuples(location):
     # Divide data in tuples as described in the paper.
 
@@ -51,4 +123,3 @@ def get_data_tuples(location):
     del_test = liver_test[['PSTATUS']] - 1
 
     return X_train, O_train, Y_train, del_train, X_test, O_test, Y_test, del_test
-    

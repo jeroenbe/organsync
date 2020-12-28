@@ -10,7 +10,8 @@ from sklearn.model_selection import train_test_split
 import click
 
 # OWN MODULES
-from utils import x_cols, o_cols
+from src.data.utils import x_cols, o_cols, x_cols_unos_ukeld, o_cols_unos_ukeld
+from src.data.utils import UNOS_2_UKReg_mapping as mapping
 
 
 
@@ -668,7 +669,7 @@ def _make_liver_data(location, destination, replace_organ):
     # REMOVE CATEGORICAL VARIABLES
     # liverdrop = liverdrop.drop(cats, axis=1)
 
-    # SPLIT IN SUBSETS (before IMPUTE to avoid leakage)
+    # SPLIT IN SUBSETS
     train, test = train_test_split(liverdrop, test_size=.2)
     
     # IMPUTE
@@ -686,12 +687,206 @@ def _make_liver_data(location, destination, replace_organ):
     joblib.dump(scaler, f'{destination}/liver_processed_scaler.pkl')
 
 
+def _make_liver_data_ukeldcomp(location, destination=None, replace_organ=None):
+    liver=pd.read_csv(location, na_values=' ')
+
+    # ONLY USE PRESENT COLS
+    x_cols_intersected = np.intersect1d(liver.columns.values, x_cols_unos_ukeld)
+    o_cols_intersected = np.intersect1d(liver.columns.values, o_cols_unos_ukeld)
+
+    # IF NON-TRANSPLANTS ARE STILL IN THE LIST:
+    liver['RECEIVED_TX'] = liver.TX_YEAR.notnull().astype(int)
+    x_cols_intersected = np.append(x_cols_intersected, 'RECEIVED_TX')
+    liver.loc[liver.TX_YEAR.isnull(), o_cols_intersected] = liver.loc[liver.TX_YEAR.isnull(), o_cols_intersected].replace(np.nan, replace_organ)
+
+    # Keep all liver transplants >= year 2005 as this is when better data is available
+    liver=liver.loc[(liver['TX_YEAR'] >= 2005) | (liver.TX_YEAR.isnull())]
+
+    # Remove all pediatric transplants
+    liver=liver.loc[liver['AGE'] >= 18]
+
+    # Remove all living donor transplants
+    liver=liver.loc[(liver['DON_TY'] == 'C') | (liver.TX_YEAR.isnull())]
+
+    # Can consider removing multiorgan transplants as other models have excluded these. For now 
+    # they will be removed
+    liver=liver.loc[liver['MULTIORG'] != 'Y']
+
+    liver['death_mech_don_group'] = liver.DEATH_MECH_DON
+    liver['death_mech_don_group'].replace([2,4,6,9,10],1, inplace=True)
+    liver['death_mech_don_group'].replace([8,9],7, inplace=True)
+
+    # creating binary for cod of donor as natural cause versus other
+    liver['deathcirc']=0
+
+    liver['deathcirc']=np.where(liver.DEATH_CIRCUM_DON==6,1,liver.deathcirc)
+    liver=liver.drop('DEATH_CIRCUM_DON',axis=1)
+
+    # Diagnosis codes have many levels. For variables dng_tcr, dgn2_tcr, and diag
+    # we create 17 levels. We can collapse some of the less frequent levels into the other category
+    # if necessary. 
+    ahn=[4100, 4101, 4102, 4103, 4104, 4105, 4106, 4107, 4108, 4110, 4217]
+    auto=[4212]
+    crypto=[4213, 4208]
+    etoh=[4215]
+    etohhcv=[4216]
+    hbv=[4202, 4592]
+    hcc=[4400, 4401, 4402]
+    hcv=[4204, 4593]
+    nash=[4214]
+    pbc=[4220]
+    psc=[4240, 4241, 4242, 4245]
+    alpha=[4300]
+    failure=[4598]
+    cholangio=[4403]
+    iron=[4302]
+    wilson=[4301]
+    poly=[4451]
+
+    # Variable DIAG refers to primary diagnosis at time of transplant
+    liver['DIAG']=liver.DIAG.replace(ahn,1)
+    liver['DIAG']=liver.DIAG.replace(hcc,2)
+    liver['DIAG']=liver.DIAG.replace(auto,3)
+    liver['DIAG']=liver.DIAG.replace(crypto,4)
+    liver['DIAG']=liver.DIAG.replace(etoh,5)
+    liver['DIAG']=liver.DIAG.replace(etohhcv,6)
+    liver['DIAG']=liver.DIAG.replace(hbv,7)
+    liver['DIAG']=liver.DIAG.replace(hcv,8)
+    liver['DIAG']=liver.DIAG.replace(nash,9)
+    liver['DIAG']=liver.DIAG.replace(pbc,10)
+    liver['DIAG']=liver.DIAG.replace(psc,11)
+    liver['DIAG']=liver.DIAG.replace(alpha,12)
+    liver['DIAG']=liver.DIAG.replace(failure,13)
+    liver['DIAG']=liver.DIAG.replace(cholangio,14)
+    liver['DIAG']=liver.DIAG.replace(iron,15)
+    liver['DIAG']=liver.DIAG.replace(wilson,16)
+    liver['DIAG']=liver.DIAG.replace(poly,17)
+
+    # Create variable named diag1 where the variable will be 0 to indicate other diagnosis
+
+    liver['diag1']=0
+    liver['diag1']=np.where(liver.DIAG==1,1,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==2,2,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==3,3,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==4,4,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==5,5,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==6,6,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==7,7,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==8,8,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==9,9,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==10,10,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==11,11,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==12,12,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==13,13,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==14,14,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==15,15,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==16,16,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG==17,17,liver.diag1)
+    liver['diag1']=np.where(np.isnan(liver.DIAG),np.nan,liver.diag1)
+    liver['diag1']=np.where(liver.DIAG.isin([999,np.nan]),18,liver.diag1)
+
+    
+
+    # RESET PRESENT COLS
+    x_cols_intersected = np.intersect1d(liver.columns.values, x_cols_unos_ukeld)
+    o_cols_intersected = np.intersect1d(liver.columns.values, o_cols_unos_ukeld)
+
+    
+    liver = liver[[*x_cols_intersected, *o_cols_intersected, 'PSTATUS', 'PTIME']]
+
+    liver = liver[pd.notnull(liver['PTIME'])]
+    liver = liver[pd.notnull(liver['PSTATUS'])]
+
+    liver.rename(columns=mapping, inplace=True)
+
+    liver.SERUM_CREATININE = np.log(liver.SERUM_CREATININE)
+    liver.SERUM_BILIRUBIN = np.log(liver.SERUM_BILIRUBIN)
+
+    liver = liver.replace([-np.inf, np.inf], np.nan)
+
+    cats = [
+        'RASCITES', 'RENAL_SUPPORT', 'SEX', 'RHCV',
+        'RENCEPH', 'PATIENT_LOCATION', 'DGRP', 'RAB_SURGERY',
+        'PRIMARY_LIVER_DISEASE']
+    for k in cats:
+        liver.loc[:,k] = liver[k].astype('category')
+        liver.loc[:,k] = liver[k].cat.codes
+
+    liver['BILIR_SOD'] = liver.SERUM_BILIRUBIN * liver.SERUM_SODIUM
+    liver['BILIR_DG'] = liver.SERUM_BILIRUBIN * liver.PRIMARY_LIVER_DISEASE
+
+    #liver_drop = list(liver.loc[:, liver.var() < 0.01].columns)
+    #liver = liver.drop(liver_drop, 1)
+
+    liver.RCREAT = np.log(liver.RCREAT)
+    liver.RBILIRUBIN = np.log(liver.RBILIRUBIN)
+    liver.RINR = np.log(liver.RINR)
+
+    liver = liver.replace([-np.inf, np.inf], np.nan)
+
+    liver['AGE_CREAT'] = liver.RAGE * liver.RCREAT
+    liver['HCV_AGE'] = liver.RHCV * liver.DAGE
+    liver['AGE_DG'] = liver.RAGE * liver.PRIMARY_LIVER_DISEASE
+    liver['DGRP_DG'] = liver.DGRP * liver.PRIMARY_LIVER_DISEASE
+    liver['DGRP_AGE'] = liver.DGRP * liver.RAGE
+    liver['DGRP_RCREA'] = liver.DGRP * liver.RCREAT
+    liver['DGRP_RABS'] = liver.DGRP * liver.RAB_SURGERY
+
+    liver.rename(columns={'rwtime': 'Y'}, inplace=True)
+
+    
+    for k in np.setdiff1d(cats, ['PRIMARY_LIVER_DISEASE']):
+        liver.loc[:,k] = liver[k].astype('category')
+    liver = pd.get_dummies(liver)
+
+    all_cols = np.union1d(x_cols_unos_ukeld, o_cols_unos_ukeld)
+    all_cols = [mapping[k] for k in mapping.keys()]
+    conts = np.setdiff1d(all_cols, [*cats, 'rwtime'])
+
+    conts = [
+        *conts,
+        'BILIR_SOD',
+        'BILIR_DG',
+        'AGE_CREAT',
+        'HCV_AGE',
+        'AGE_DG',
+        'DGRP_DG',
+        'DGRP_AGE',
+        'DGRP_RCREA',
+        'DGRP_RABS',
+        'Y'
+    ]
+
+    scaler = preprocessing.StandardScaler()
+    liver.loc[:,conts] = scaler.fit_transform(liver[conts])
+
+    # SPLIT IN SUBSETS
+    train, test = train_test_split(liver, test_size=.2)
+    
+    # IMPUTE
+    MICE = IterativeImputer(random_state=0)
+    train.loc[:,conts] = MICE.fit_transform(train[conts])
+    test.loc[:,conts] = MICE.fit_transform(test[conts])
+
+    
+    # SAVE
+    train.to_csv(f'{destination}/liver_processed_train.csv')
+    test.to_csv(f'{destination}/liver_processed_test.csv')
+
+    np.save(f'{destination}/liver_processed_conts.npy', conts)
+    np.save(f'{destination}/liver_processed_cats.npy', cats)
+    joblib.dump(scaler, f'{destination}/scaler')
+
+
+
 @click.command()
 @click.option('-l', '--location', type=str)
 @click.option('-d', '--destination', type=str)
 @click.option('-r', '--replace_organ', type=int, default=0)
 def cli(location, destination, replace_organ):
-    _make_liver_data(location, destination, replace_organ)
+    #_make_liver_data(location, destination, replace_organ)
+    _make_liver_data_ukeldcomp(location, destination, replace_organ=-1)
+
 
 
 if __name__ == "__main__":
