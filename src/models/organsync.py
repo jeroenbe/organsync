@@ -150,6 +150,7 @@ class OrganSync_Network(pl.LightningModule):
 @click.option('--activation_type', type=str, default='relu') # 'relu', 'leaky_relu'
 @click.option('--dropout_prob', type=float, default=.0)
 @click.option('--control', type=click.BOOL, default=False)
+@click.option('--is_synth', type=click.BOOL, default=False)
 def train(
         lr,
         gamma,
@@ -165,15 +166,16 @@ def train(
         hidden_dim,
         activation_type,
         dropout_prob,
-        control):
+        control,
+        is_synth):
 
     # LOAD DATA
     if data == 'UNOS':
-        dm = UNOSDataModule(data_dir, batch_size=batch_size)
+        dm = UNOSDataModule(data_dir, batch_size=batch_size, is_synth=is_synth)
     if data == 'U2U':
-        dm = UNOS2UKRegDataModule(data_dir, batch_size=batch_size, control=control)
+        dm = UNOS2UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, control=control)
     else:
-        dm = UKRegDataModule(data_dir, batch_size=batch_size)
+        dm = UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth)
     #dm.setup(stage='fit')
 
     # CONSTRUCT MODEL
