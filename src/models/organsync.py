@@ -1,6 +1,10 @@
 import click, wandb, torch, math
 
 import numpy as np
+import cvxpy as cp
+
+import joblib
+from joblib import Parallel, delayed
 
 from torch import nn, optim
 import torch.nn.functional as F
@@ -20,7 +24,8 @@ class OrganSync_Network(pl.LightningModule):
     #   the non-linear representation u. In the
     #   representation space, U, we search for 
     #   synthetic controls used for ITE predictions
-    #   and survival analysis.
+    #   and survival analysis. For this, refer 
+    #   to synthetic_control(x, o, lambd)
 
     def __init__(
             self,
@@ -117,7 +122,7 @@ class OrganSync_Network(pl.LightningModule):
     def test_step(self, batch, ix):
         x, o, y, _ = batch
         y = y.cpu()
-        
+
         # PREDICT
         u = torch.cat((x, o), dim=1)
         y_ = self.forward(u).cpu()
@@ -129,9 +134,35 @@ class OrganSync_Network(pl.LightningModule):
 
         loss = torch.abs(y - y_)
 
-        self.log('test_loss - mean difference in days', loss, on_epoch=True)
+        self.log('test_loss (reg.) - mean difference in days', loss, on_epoch=True)
 
         return loss
+
+    def synthetic_control(self, x, o, lambd: float=.5): # returns a, u_ and y_
+        # BUILD U FROM TRAINING
+        X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset.tensors
+        catted = torch.cat((X, O), dim=1).double()
+        U = self.representation(catted)
+
+        # BUILD u FROM TEST
+        new_pairs = torch.cat((x, o), dim=1).double()
+        u = self.representation(new_pairs)
+        
+        # CONVEX OPT
+        a = cp.Variable(U.shape[0])
+
+        objective = cp.Minimize(cp.sum_squares(a@U - u) + lambd * cp.norm1(a))
+        constraints = [0 <= a, a <= 1, cp.sum(a) == 1]
+        prob = cp.Problem(objective, constraints)
+
+        prob.solve(warm_start=True, solver=cp.SCS)
+        
+        # INFER
+        synth_y = a.value @ Y.numpy()
+        mean, std = self.trainer.datamodule.mean, self.trainer.datamodule.std
+        synth_y = synth_y * std + mean
+
+        return a.value, a.value @ U, synth_y
 
 
 @click.command()
