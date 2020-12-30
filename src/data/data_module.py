@@ -123,43 +123,29 @@ class UNOSDataModule(OrganDataModule):
         self._train_processed, self._test_processed = liver_train, liver_test
 
 class UNOS2UKRegDataModule(OrganDataModule):
-    def __init__(self, data_dir: str, batch_size: int, replace_organ: int=-1):
+    def __init__(self, data_dir: str, batch_size: int, replace_organ: int=-1, control: bool=False):
         super().__init__(data_dir=data_dir, batch_size=batch_size, replace_organ=replace_organ)
 
-        self.dims = (0, 55)
+        self.control=False
+
+        self.dims = (0, 51)
 
     def prepare_data(self):
         liver_train = pd.read_csv(f'{self.data_dir}/liver_processed_train.csv')
         liver_test = pd.read_csv(f'{self.data_dir}/liver_processed_test.csv')
 
+        if self.control:
+            liver_train = liver_train[(not liver_train.RECEIVED_TX)]
+            liver_test = liver_test[(not liver_test.RECEIVED_TX)]
+        else:
+            liver_train = liver_train[liver_train.RECEIVED_TX]
+            liver_test = liver_test[liver_test.RECEIVED_TX]
+
         self.scaler = joblib.load(f'{self.data_dir}/scaler')
 
-        U2U_mapped = np.array(list(UNOS_2_UKReg_mapping.keys()))
-        x_cols_present = np.intersect1d(U2U_mapped, x_cols)
-        o_cols_present = np.intersect1d(U2U_mapped, o_cols)
 
-        self.x_cols = np.array([UNOS_2_UKReg_mapping[k] for k in x_cols_present])
-        self.o_cols = np.array([UNOS_2_UKReg_mapping[k] for k in o_cols_present])
-
-        # TEMPORARY SOLUTION
-        self.x_cols = ['RAGE', 'RCREAT', 'RINR', 'RSODIUM', 'RALBUMIN',
-            'SERUM_BILIRUBIN', 'INR', 'SERUM_CREATININE', 'SERUM_SODIUM',
-            'regyr', 'RBILIRUBIN', 'PRIMARY_LIVER_DISEASE',  
-            'CENS', 'Y', 'BILIR_SOD', 'BILIR_DG',
-            'RASCITES_0', 'RASCITES_1', 'RASCITES_2', 'RASCITES_3',
-            'RENAL_SUPPORT_-1', 'RENAL_SUPPORT_0', 'RENAL_SUPPORT_1', 'SEX_0',
-            'SEX_1', 'RHCV_-1', 'RHCV_0', 'RHCV_1', 'RHCV_2', 'RHCV_3',
-            'RENCEPH_-1', 'RENCEPH_0', 'RENCEPH_1', 'RENCEPH_2', 'RENCEPH_3',
-            'PATIENT_LOCATION_-1', 'PATIENT_LOCATION_0', 'PATIENT_LOCATION_1',
-            'PATIENT_LOCATION_2', 'RAB_SURGERY_-1', 'RAB_SURGERY_0',
-            'RAB_SURGERY_1', 'RAB_SURGERY_2'
-        ]
-
-        self.o_cols = [
-            'DAGE', 'DBMI', 'DGRP_-1', 'DGRP_0', 'DGRP_1', 
-            'DGRP_DG', 'DGRP_AGE', 'DGRP_RCREA', 'DGRP_RABS',
-             'AGE_CREAT', 'HCV_AGE','AGE_DG', 
-        ]
+        self.x_cols = np.load(f'{self.data_dir}/x_cols.npy', allow_pickle=True)
+        self.o_cols = np.load(f'{self.data_dir}/o_cols.npy', allow_pickle=True)
 
         self.mean = self.scaler.mean_[-1]
         self.std = self.scaler.scale_[-1]

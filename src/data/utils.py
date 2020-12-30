@@ -37,7 +37,7 @@ x_cols_unos_ukeld = [
     'INIT_BILIRUBIN', #'SERUM_BILIRUBIN'
     'INIT_INR', #'INR'
     'INIT_SERUM_SODIUM', #'SERUM_SODIUM'
-    #'INIT_DIALYSIS_PRIOR_WEEK', 
+    'INIT_DIALYSIS_PRIOR_WEEK', 
     'DIAL_TX', #'RENAL_SUPPORT', 'RREN_SUP'
     'MED_COND_TRR', #'PATIENT_LOCATION' TODO: check whether variables correspond to UKReg
     'LISTYR', #'regyr'
@@ -74,7 +74,7 @@ UNOS_2_UKReg_mapping = {
         'ASCITES_TX':               'RASCITES',                 # TODO: merge
         'BMI_DON_CALC':             'DBMI',
         'CREAT_TX':                 'RCREAT',
-        'DIAL_TX':                  'RENAL_SUPPORT',            #, RREN_SUP TODO: merge
+        'DIAL_TX':                  'RREN_SUP',            #, RREN_SUP TODO: merge
         'FINAL_INR':                'RINR',
         'FINAL_SERUM_SODIUM':       'RSODIUM',
         'GENDER':                   'SEX',
@@ -82,7 +82,7 @@ UNOS_2_UKReg_mapping = {
         'INIT_ALBUMIN':             'RALBUMIN',
         #'INIT_ASCITES':             'RASCITES',                 # TODO: merge
         'INIT_BILIRUBIN':           'SERUM_BILIRUBIN',
-        #'INIT_DIALYSIS_PRIOR_WEEK': 'RENAL_SUPPORT',            #, RREN_SUP TODO: merge
+        'INIT_DIALYSIS_PRIOR_WEEK': 'RENAL_SUPPORT',            #, RREN_SUP TODO: merge
         'INIT_ENCEPH':              'RENCEPH',
         'INIT_INR':                 'INR',
         'INIT_SERUM_CREAT':         'SERUM_CREATININE',
