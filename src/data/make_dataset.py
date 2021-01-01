@@ -803,7 +803,6 @@ def _make_liver_data_u2u(location, destination=None, replace_organ=None):
     liver['diag1']=np.where(np.isnan(liver.DIAG),np.nan,liver.diag1)
     liver['diag1']=np.where(liver.DIAG.isin([999,np.nan]),18,liver.diag1)
 
-    # TODO: add diag1 to X columns
     x_cols_inters = [*x_cols_inters, 'diag1']
     X = liver[x_cols_inters]
 
@@ -875,7 +874,7 @@ def _make_liver_data_u2u(location, destination=None, replace_organ=None):
 
 
     # SPLIT IN SUBSETS
-    train, test = train_test_split(DATA, test_size=.2)
+    train, test = train_test_split(DATA, test_size=.05)
 
     # IMPUTE
     MICE = IterativeImputer(random_state=0)

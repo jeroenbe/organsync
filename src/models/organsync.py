@@ -127,42 +127,59 @@ class OrganSync_Network(pl.LightningModule):
         u = torch.cat((x, o), dim=1)
         y_ = self.forward(u).cpu()
 
+        # SYNTHETIC PREDICTION
+        synth_result = self.synthetic_control(x, o)
+        synth_y = synth_result[2] # is already scaled
+
+
         # SCALE
         mean, std = self.trainer.datamodule.mean, self.trainer.datamodule.std
         y = y * std + mean
         y_ = y_ * std + mean
 
         loss = torch.abs(y - y_)
+        synth_loss = np.abs(y.numpy() - synth_y)
 
         self.log('test_loss (reg.) - mean difference in days', loss, on_epoch=True)
+        self.log('test_loss (synth) - mean difference in days', synth_loss, on_epoch=True)
 
-        return loss
+        return loss, synth_loss
 
     def synthetic_control(self, x, o, lambd: float=.5): # returns a, u_ and y_
+        self.eval()
         # BUILD U FROM TRAINING
-        X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset.tensors
+        X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset[:1000]
         catted = torch.cat((X, O), dim=1).double()
-        U = self.representation(catted)
+        U = self.representation(catted).detach().numpy()
 
         # BUILD u FROM TEST
         new_pairs = torch.cat((x, o), dim=1).double()
-        u = self.representation(new_pairs)
+        u = self.representation(new_pairs).detach().numpy()
         
         # CONVEX OPT
-        a = cp.Variable(U.shape[0])
+        def convex_opt(u):
+            a = cp.Variable(U.shape[0])
 
-        objective = cp.Minimize(cp.sum_squares(a@U - u) + lambd * cp.norm1(a))
-        constraints = [0 <= a, a <= 1, cp.sum(a) == 1]
-        prob = cp.Problem(objective, constraints)
+            objective = cp.Minimize(cp.sum_squares(a@U - u) + lambd * cp.norm1(a))
+            constraints = [0 <= a, a <= 1, cp.sum(a) == 1]
+            prob = cp.Problem(objective, constraints)
 
-        prob.solve(warm_start=True, solver=cp.SCS)
+            prob.solve(warm_start=True, solver=cp.SCS)
+            
+            return a.value, a.value @ U, (a.value @ Y.numpy()).item()
+
+        result = Parallel(n_jobs=joblib.cpu_count())(delayed(convex_opt)(u_) for u_ in u)
+        result = np.array(result, dtype=object)
         
         # INFER
-        synth_y = a.value @ Y.numpy()
+        a_s = result[:,0]
+        u_s = result[:,1]
+        synth_y = result[:,2]
+
         mean, std = self.trainer.datamodule.mean, self.trainer.datamodule.std
         synth_y = synth_y * std + mean
 
-        return a.value, a.value @ U, synth_y
+        return a_s, u_s, synth_y
 
 
 @click.command()
