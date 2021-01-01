@@ -121,11 +121,11 @@ class OrganSync_Network(pl.LightningModule):
 
     def test_step(self, batch, ix):
         x, o, y, _ = batch
-        y = y.cpu()
+        y = y
 
         # PREDICT
         u = torch.cat((x, o), dim=1)
-        y_ = self.forward(u).cpu()
+        y_ = self.forward(u)
 
         # SYNTHETIC PREDICTION
         synth_result = self.synthetic_control(x, o)
@@ -146,7 +146,6 @@ class OrganSync_Network(pl.LightningModule):
         return loss, synth_loss
 
     def synthetic_control(self, x, o, lambd: float=.5): # returns a, u_ and y_
-        self.eval()
         # BUILD U FROM TRAINING
         X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset[:1000]
         catted = torch.cat((X, O), dim=1).double()
