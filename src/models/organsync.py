@@ -129,7 +129,7 @@ class OrganSync_Network(pl.LightningModule):
 
         # SYNTHETIC PREDICTION
         synth_result = self.synthetic_control(x, o)
-        synth_y = torch.Tensor(synth_result[2].astype('float64')) # is already scaled
+        synth_y = torch.Tensor(synth_result[2].astype('float64'), device=self.device) # is already scaled
 
 
         # SCALE
