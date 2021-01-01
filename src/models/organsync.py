@@ -129,7 +129,7 @@ class OrganSync_Network(pl.LightningModule):
 
         # SYNTHETIC PREDICTION
         synth_result = self.synthetic_control(x, o)
-        synth_y = torch.Tensor(synth_result[2].astype('float64')).to(self.device) # is already scaled
+        synth_y = torch.Tensor(synth_result[2].astype('float64')).to(self.device).view(-1, 1) # is already scaled
 
 
         # SCALE
@@ -139,6 +139,12 @@ class OrganSync_Network(pl.LightningModule):
 
         loss = torch.abs(y - y_)
         synth_loss = torch.abs(y - synth_y)
+
+        print(loss)
+        print(synth_loss)
+
+        print(loss.shape)
+        print(synth_loss.shape)
 
         self.log('test_loss (reg.) - mean difference in days', loss, on_epoch=True)
         self.log('test_loss (synth) - mean difference in days', synth_loss, on_epoch=True)
