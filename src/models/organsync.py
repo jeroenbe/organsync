@@ -129,7 +129,7 @@ class OrganSync_Network(pl.LightningModule):
 
         # SYNTHETIC PREDICTION
         synth_result = self.synthetic_control(x, o)
-        synth_y = synth_result[2] # is already scaled
+        synth_y = torch.Tensor(synth_result[2]) # is already scaled
 
 
         # SCALE
@@ -138,7 +138,7 @@ class OrganSync_Network(pl.LightningModule):
         y_ = y_ * std + mean
 
         loss = torch.abs(y - y_)
-        synth_loss = np.abs(y.numpy() - synth_y)
+        synth_loss = torch.abs(y - synth_y)
 
         self.log('test_loss (reg.) - mean difference in days', loss, on_epoch=True)
         self.log('test_loss (synth) - mean difference in days', synth_loss, on_epoch=True)
@@ -152,11 +152,11 @@ class OrganSync_Network(pl.LightningModule):
         if torch.cuda.is_available():
             catted = catted.cuda()
         
-        U = self.representation(catted).detach().numpy()
+        U = self.representation(catted).detach().cpu().numpy()
 
         # BUILD u FROM TEST
         new_pairs = torch.cat((x, o), dim=1).double()
-        u = self.representation(new_pairs).detach().numpy()
+        u = self.representation(new_pairs).detach().cpu().numpy()
         
         # CONVEX OPT
         def convex_opt(u):
