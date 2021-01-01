@@ -140,12 +140,6 @@ class OrganSync_Network(pl.LightningModule):
         loss = torch.abs(y - y_)
         synth_loss = torch.abs(y - synth_y)
 
-        print(loss)
-        print(synth_loss)
-
-        print(loss.shape)
-        print(synth_loss.shape)
-
         self.log('test_loss (reg.) - mean difference in days', loss, on_epoch=True)
         self.log('test_loss (synth) - mean difference in days', synth_loss, on_epoch=True)
 
