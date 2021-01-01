@@ -146,13 +146,12 @@ class OrganSync_Network(pl.LightningModule):
         return loss, synth_loss
 
     def synthetic_control(self, x, o, lambd: float=.5): # returns a, u_ and y_
-        if torch.cuda.is_available():
-            X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset[:1000].gpu()
-        else:
-            X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset[:1000]
-
         # BUILD U FROM TRAINING
+        X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset[:1000]
         catted = torch.cat((X, O), dim=1).double()
+        if torch.cuda.is_available():
+            catted = catted.gpu()
+        
         U = self.representation(catted).detach().numpy()
 
         # BUILD u FROM TEST
