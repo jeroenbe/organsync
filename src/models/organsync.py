@@ -150,7 +150,7 @@ class OrganSync_Network(pl.LightningModule):
         X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset[:1000]
         catted = torch.cat((X, O), dim=1).double()
         if torch.cuda.is_available():
-            catted = catted.gpu()
+            catted = catted.cuda()
         
         U = self.representation(catted).detach().numpy()
 
