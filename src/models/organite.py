@@ -34,7 +34,7 @@ class OrganITE_Network(pl.LightningModule):
             input_dim,
             hidden_dim,
             output_dim,
-            lr, gamma, lambd, weight_decay, n_clusters,
+            lr, gamma, lambd, kappa, weight_decay, n_clusters,
             num_hidden_layers: int=1,
             activation_type='relu',
             dropout_prob: float=.0):
@@ -44,6 +44,7 @@ class OrganITE_Network(pl.LightningModule):
         self.lr = lr
         self.gamma = gamma
         self.lambd = lambd
+        self.kappa = kappa
         self.weight_decay = weight_decay
 
         self.n_clusters = n_clusters
@@ -129,7 +130,8 @@ class OrganITE_Network(pl.LightningModule):
 
         return [optimiser], [scheduler]
     
-    
+    # INFERENCE
+
     def shared_step(self, batch):
         x, o, y, _ = batch
 
@@ -146,7 +148,7 @@ class OrganITE_Network(pl.LightningModule):
     
     def training_step(self, batch, ix):
         mse, prop = self.shared_step(batch)
-        loss = mse + prop
+        loss = mse + self.kappa * prop
 
         self.log('train_loss - MSE', mse, on_epoch=True)
         self.log('train_loss - Prop.', prop, on_epoch=True)
@@ -156,7 +158,7 @@ class OrganITE_Network(pl.LightningModule):
 
     def validation_step(self, batch, ix):
         mse, prop = self.shared_step(batch)
-        loss = mse + prop
+        loss = mse + self.kappa * prop
 
         self.log('val_loss - MSE', mse, on_epoch=True)
         self.log('val_loss - Prop.', prop, on_epoch=True)
@@ -185,6 +187,7 @@ class OrganITE_Network(pl.LightningModule):
 @click.option('--lr', type=float, default=.005)
 @click.option('--gamma', type=float, default=.9)
 @click.option('--lambd', type=float, default=.15)
+@click.option('--kappa', type=float, default=.15)
 @click.option('--n_clusters', type=int, default=15)
 @click.option('--weight_decay', type=float, default=1e-3)
 @click.option('--epochs', type=int, default=30)
@@ -204,6 +207,7 @@ def train(
         lr,
         gamma,
         lambd,
+        kappa,
         n_clusters,
         weight_decay,
         epochs,
@@ -236,7 +240,7 @@ def train(
         hidden_dim=hidden_dim,
         num_hidden_layers=num_hidden_layers,
         output_dim=output_dim, 
-        lr=lr, gamma=gamma, lambd=lambd, weight_decay=weight_decay,
+        lr=lr, gamma=gamma, lambd=lambd, kappa=kappa, weight_decay=weight_decay,
         n_clusters=n_clusters,
         activation_type=activation_type,
         dropout_prob=dropout_prob).double()
