@@ -169,7 +169,7 @@ class OrganITE_Network(pl.LightningModule):
     def test_step(self, batch, ix):
         x, o, y, _ = batch
         
-        y_, _ = self.forward(torch.cat((x, o), dim=1))
+        _, y_ = self.forward(torch.cat((x, o), dim=1))
 
         # SCALE
         mean, std = self.trainer.datamodule.mean, self.trainer.datamodule.std
