@@ -136,7 +136,7 @@ class OrganITE_Network(pl.LightningModule):
         u = torch.cat((x,o), dim=1)
         p, y_ = self.forward(u)
 
-        c = self.cluster.predict(o)
+        c = self.cluster.predict(o.cpu())
         enc = np.zeros((len(c), 25))
         for i, c_ in enumerate(c):
             enc[i, c_]=1
