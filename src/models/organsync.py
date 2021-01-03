@@ -32,7 +32,7 @@ class OrganSync_Network(pl.LightningModule):
             input_dim,
             hidden_dim,
             output_dim,
-            lr, gamma, weight_decay,
+            lr, gamma, lambd, weight_decay,
             num_hidden_layers: int=1,
             activation_type='relu',
             dropout_prob: float=.0):
@@ -41,6 +41,7 @@ class OrganSync_Network(pl.LightningModule):
 
         self.lr = lr
         self.gamma = gamma
+        self.lambd = lambd
         self.weight_decay = weight_decay
 
         self.input_dim = input_dim
@@ -145,7 +146,7 @@ class OrganSync_Network(pl.LightningModule):
 
         return loss, synth_loss
 
-    def synthetic_control(self, x, o, lambd: float=.5): # returns a, u_ and y_
+    def synthetic_control(self, x, o): # returns a, u_ and y_
         # BUILD U FROM TRAINING
         X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset[:1000]
         catted = torch.cat((X, O), dim=1).double()
@@ -162,7 +163,7 @@ class OrganSync_Network(pl.LightningModule):
         def convex_opt(u):
             a = cp.Variable(U.shape[0])
 
-            objective = cp.Minimize(cp.sum_squares(a@U - u) + lambd * cp.norm1(a))
+            objective = cp.Minimize(cp.sum_squares(a@U - u) + self.lambd * cp.norm1(a))
             constraints = [0 <= a, a <= 1, cp.sum(a) == 1]
             prob = cp.Problem(objective, constraints)
 
@@ -187,6 +188,7 @@ class OrganSync_Network(pl.LightningModule):
 @click.command()
 @click.option('--lr', type=float, default=.005)
 @click.option('--gamma', type=float, default=.9)
+@click.option('--lambd', type=float, default=.5)
 @click.option('--weight_decay', type=float, default=1e-3)
 @click.option('--epochs', type=int, default=30)
 @click.option('--wb_run', type=str, default='organsync-net')
@@ -204,6 +206,7 @@ class OrganSync_Network(pl.LightningModule):
 def train(
         lr,
         gamma,
+        lambd,
         weight_decay,
         epochs,
         wb_run,
@@ -235,7 +238,7 @@ def train(
         hidden_dim=hidden_dim,
         num_hidden_layers=num_hidden_layers,
         output_dim=output_dim, 
-        lr=lr, gamma=gamma, weight_decay=weight_decay,
+        lr=lr, gamma=gamma, lambd=lambd, weight_decay=weight_decay,
         activation_type=activation_type,
         dropout_prob=dropout_prob).double()
 
