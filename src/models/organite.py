@@ -140,7 +140,7 @@ class OrganITE_Network(pl.LightningModule):
         enc = np.zeros((len(c), 25))
         for i, c_ in enumerate(c):
             enc[i, c_]=1
-        enc = torch.Tensor(enc)
+        enc = torch.Tensor(enc).to(self.device)
         c = torch.Tensor(c).long()
 
         mse = self.loss_mse(y_, y)
