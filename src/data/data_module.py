@@ -190,7 +190,7 @@ class UKRegDataModule(OrganDataModule):
     def __init__(self, data_dir: str, batch_size: int, replace_organ: int=-1, is_synth: bool=False, test_size: float=.05):
         super().__init__(data_dir=data_dir, batch_size=batch_size, replace_organ=replace_organ, is_synth=is_synth, test_size=test_size)
 
-        self.dims = (0, 81)
+        self.dims = (0, 79)
 
     def prepare_data(self):
 
@@ -201,7 +201,9 @@ class UKRegDataModule(OrganDataModule):
         self.DATA = pd.read_csv(f'{self.data_dir}/data_preprocessed.csv', index_col=0)
         xm1 = np.load(f'{self.data_dir}/x_cols_m1.npy', allow_pickle=True)
         xm2 = np.load(f'{self.data_dir}/x_cols_m2.npy', allow_pickle=True)
+        
         self.x_cols = np.union1d(xm1, xm2)
+        self.x_cols = np.setdiff1d(self.x_cols, ['PSURV', 'rwtime'])
         self.o_cols = np.load(f'{self.data_dir}/o_cols_m2.npy', allow_pickle=True)
         #self.real_cols = np.load(f'{self.data_dir}/impute.npy', allow_pickle=True)
         self.scaler = joblib.load(f'{self.data_dir}/scaler')
