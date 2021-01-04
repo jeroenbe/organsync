@@ -878,20 +878,12 @@ def _make_liver_data_u2u(location, destination=None, replace_organ=None):
 
     # IMPUTE
     MICE = IterativeImputer(random_state=0)
-    train.loc[:,conts] = MICE.fit_transform(train[conts])
-    test.loc[:,conts] = MICE.fit_transform(test[conts])
-
-    # SET TO replace_organ AFTER NORMALISING TO KEEP VAL AT INFERENCE
-    # ONLY TO conts AS NaNs FOR cats ARE AUTOMATED BY pd.get_dummies
-    #train.loc[(train.RECEIVED_TX == False), np.intersect1d(o_cols_final, conts)] = replace_organ
-    #test.loc[(test.RECEIVED_TX == False), np.intersect1d(o_cols_final, conts)] = replace_organ
+    DATA.loc[:,conts] = MICE.fit_transform(DATA[conts])
 
     # SAVE
-    train.to_csv(f'{destination}/liver_processed_train.csv')
-    test.to_csv(f'{destination}/liver_processed_test.csv')
+    DATA.to_csv(f'{destination}/liver_processed.csv')
 
     np.save(f'{destination}/liver_processed_conts.npy', conts)
-    #np.save(f'{destination}/liver_processed_cats.npy', cats) # cats can be inferred from conts
     np.save(f'{destination}/o_cols', o_cols_final)
     np.save(f'{destination}/x_cols', x_cols_final)
     joblib.dump(scaler, f'{destination}/scaler')
@@ -904,7 +896,6 @@ def _make_liver_data_u2u(location, destination=None, replace_organ=None):
 def cli(location, destination, replace_organ):
     #_make_liver_data(location, destination, replace_organ)
     _make_liver_data_u2u(location, destination, replace_organ=-1)
-
 
 
 if __name__ == "__main__":

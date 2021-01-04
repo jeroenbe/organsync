@@ -34,7 +34,6 @@ class OrganDataModule(pl.LightningDataModule):
     def prepare_data(self):
         pass
     
-    
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size)
 
@@ -158,15 +157,22 @@ class UNOS2UKRegDataModule(OrganDataModule):
         self.dims = (0, 51)
 
     def prepare_data(self):
-        liver_train = pd.read_csv(f'{self.data_dir}/liver_processed_train.csv')
-        liver_test = pd.read_csv(f'{self.data_dir}/liver_processed_test.csv')
+        DATA = pd.read_csv(f'{self.data_dir}/liver_processed.csv')
+
+        #liver_train = pd.read_csv(f'{self.data_dir}/liver_processed_train.csv')
+        #liver_test = pd.read_csv(f'{self.data_dir}/liver_processed_test.csv')
 
         if self.control:
-            liver_train = liver_train[(not liver_train.RECEIVED_TX)]
-            liver_test = liver_test[(not liver_test.RECEIVED_TX)]
+            #liver_train = liver_train[(not liver_train.RECEIVED_TX)]
+            #liver_test = liver_test[(not liver_test.RECEIVED_TX)]
+
+            DATA = DATA[(not DATA.RECEIVED_TX)]
         else:
-            liver_train = liver_train[liver_train.RECEIVED_TX]
-            liver_test = liver_test[liver_test.RECEIVED_TX]
+            #liver_train = liver_train[liver_train.RECEIVED_TX]
+            #liver_test = liver_test[liver_test.RECEIVED_TX]
+            DATA = DATA[DATA.RECEIVED_TX]
+
+        liver_train, liver_test = train_test_split(DATA, test_size=.05)
 
         self.scaler = joblib.load(f'{self.data_dir}/scaler')
 
@@ -189,7 +195,8 @@ class UKRegDataModule(OrganDataModule):
 
         # AS REPORTED IN LAG-Document 
         # TODO: provide link for this
-        # TODO: split train-test before processing
+        # TODO: remove leaked columns
+
         self.DATA = pd.read_csv(f'{self.data_dir}/data_preprocessed.csv', index_col=0)
         xm1 = np.load(f'{self.data_dir}/x_cols_m1.npy', allow_pickle=True)
         xm2 = np.load(f'{self.data_dir}/x_cols_m2.npy', allow_pickle=True)
