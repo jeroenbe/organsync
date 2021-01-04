@@ -36,13 +36,13 @@ class OrganDataModule(pl.LightningDataModule):
         pass
     
     def train_dataloader(self):
-        return DataLoader(self.train, batch_size=self.batch_size)
+        return DataLoader(self.train, batch_size=self.batch_size, num_workers=joblib.cpu_count())
 
     def val_dataloader(self):
-        return DataLoader(self.val, batch_size=self.batch_size)
+        return DataLoader(self.val, batch_size=self.batch_size, num_workers=joblib.cpu_count())
 
     def test_dataloader(self):
-        return DataLoader(self.test, batch_size=self.batch_size)
+        return DataLoader(self.test, batch_size=self.batch_size, num_workers=joblib.cpu_count())
     
     def setup(self, stage=None):
         X_train, O_train, Y_train, del_train = (self._train_processed[self.x_cols],

@@ -1,11 +1,10 @@
-import click, wandb, torch, math
+import click, wandb, torch
 
 import numpy as np
 
 from sklearn.cluster import KMeans
 
 from torch import nn, optim
-import torch.nn.functional as F
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
