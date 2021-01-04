@@ -198,6 +198,7 @@ class OrganSync_Network(pl.LightningModule):
 @click.option('--weight_decay', type=float, default=1e-3)
 @click.option('--epochs', type=int, default=30)
 @click.option('--wb_run', type=str, default='organsync-net')
+@click.option('--run_amount', type=int, default=1)
 @click.option('--batch_size', type=int, default=128)
 @click.option('--group', type=str, default=None)
 @click.option('--data', type=str, default='UNOS')
@@ -209,6 +210,7 @@ class OrganSync_Network(pl.LightningModule):
 @click.option('--dropout_prob', type=float, default=.0)
 @click.option('--control', type=click.BOOL, default=False)
 @click.option('--is_synth', type=click.BOOL, default=False)
+@click.option('--test_size', type=float, default=.05)
 def train(
         lr,
         gamma,
@@ -216,6 +218,7 @@ def train(
         weight_decay,
         epochs,
         wb_run,
+        run_amount,
         batch_size,
         group,
         data,
@@ -226,41 +229,43 @@ def train(
         activation_type,
         dropout_prob,
         control,
-        is_synth):
+        is_synth,
+        test_size):
 
-    # LOAD DATA
-    if data == 'UNOS':
-        dm = UNOSDataModule(data_dir, batch_size=batch_size, is_synth=is_synth)
-    if data == 'U2U':
-        dm = UNOS2UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, control=control)
-    else:
-        dm = UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth)
-    #dm.setup(stage='fit')
+    for _ in range(run_amount):
+        # LOAD DATA
+        if data == 'UNOS':
+            dm = UNOSDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, test_size=test_size)
+        if data == 'U2U':
+            dm = UNOS2UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, control=control, test_size=test_size)
+        else:
+            dm = UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, test_size=test_size)
+        #dm.setup(stage='fit')
 
-    # CONSTRUCT MODEL
-    input_dim = dm.size(1)
-    model = OrganSync_Network(
-        input_dim=input_dim, 
-        hidden_dim=hidden_dim,
-        num_hidden_layers=num_hidden_layers,
-        output_dim=output_dim, 
-        lr=lr, gamma=gamma, lambd=lambd, weight_decay=weight_decay,
-        activation_type=activation_type,
-        dropout_prob=dropout_prob).double()
+        # CONSTRUCT MODEL
+        input_dim = dm.size(1)
+        model = OrganSync_Network(
+            input_dim=input_dim, 
+            hidden_dim=hidden_dim,
+            num_hidden_layers=num_hidden_layers,
+            output_dim=output_dim, 
+            lr=lr, gamma=gamma, lambd=lambd, weight_decay=weight_decay,
+            activation_type=activation_type,
+            dropout_prob=dropout_prob).double()
 
-    # SETUP LOGGING CALLBACKS
-    wb_logger = WandbLogger(project=wb_run, log_model=True, group=group)
-    checkpoint_callback = ModelCheckpoint(monitor='val_loss', filename='organsync_net.ckpt', dirpath=wb_logger.experiment.dir)
+        # SETUP LOGGING CALLBACKS
+        wb_logger = WandbLogger(project=wb_run, log_model=True, group=group)
+        checkpoint_callback = ModelCheckpoint(monitor='val_loss', filename='organsync_net.ckpt', dirpath=wb_logger.experiment.dir)
 
-    # SETUP GPU
-    gpus = 1 if torch.cuda.is_available() else 0
+        # SETUP GPU
+        gpus = 1 if torch.cuda.is_available() else 0
 
-    # TRAIN NETWORK
-    trainer = Trainer(logger=wb_logger, callbacks=[checkpoint_callback], max_epochs=epochs, gpus=gpus)
-    trainer.fit(model, datamodule=dm)
+        # TRAIN NETWORK
+        trainer = Trainer(logger=wb_logger, callbacks=[checkpoint_callback], max_epochs=epochs, gpus=gpus)
+        trainer.fit(model, datamodule=dm)
 
-    # TEST NETWORK
-    trainer.test(datamodule=dm)
+        # TEST NETWORK
+        trainer.test(datamodule=dm)
     
     wandb.finish()
 

@@ -21,12 +21,13 @@ from src.data.utils import x_cols, o_cols, UNOS_2_UKReg_mapping
 
 
 class OrganDataModule(pl.LightningDataModule):
-    def __init__(self, data_dir: str, batch_size:int, replace_organ: int=-1, is_synth: bool=False):
+    def __init__(self, data_dir: str, batch_size:int, replace_organ: int=-1, is_synth: bool=False, test_size: float=.05):
         super().__init__()
 
         self.batch_size = batch_size
         self.data_dir = data_dir
         self.is_synth = is_synth
+        self.test_size = test_size
 
         self.replace_organ = replace_organ
 
@@ -112,8 +113,8 @@ class OrganDataModule(pl.LightningDataModule):
 
 
 class UNOSDataModule(OrganDataModule):
-    def __init__(self, data_dir: str, batch_size: int, is_synth: bool=False):
-        super().__init__(data_dir=data_dir, batch_size=batch_size, is_synth=is_synth)
+    def __init__(self, data_dir: str, batch_size: int, is_synth: bool=False, test_size: float=.05):
+        super().__init__(data_dir=data_dir, batch_size=batch_size, is_synth=is_synth, test_size=test_size)
 
         self.dims = (0, 141)
 
@@ -149,10 +150,10 @@ class UNOSDataModule(OrganDataModule):
         self._train_processed, self._test_processed = liver_train, liver_test
 
 class UNOS2UKRegDataModule(OrganDataModule):
-    def __init__(self, data_dir: str, batch_size: int, replace_organ: int=-1, is_synth: bool=False, control: bool=False):
-        super().__init__(data_dir=data_dir, batch_size=batch_size, replace_organ=replace_organ, is_synth=is_synth)
+    def __init__(self, data_dir: str, batch_size: int, replace_organ: int=-1, is_synth: bool=False, control: bool=False, test_size: float=.05):
+        super().__init__(data_dir=data_dir, batch_size=batch_size, replace_organ=replace_organ, is_synth=is_synth, test_size=test_size)
 
-        self.control=False
+        self.control=control
 
         self.dims = (0, 51)
 
@@ -166,7 +167,7 @@ class UNOS2UKRegDataModule(OrganDataModule):
             #liver_train = liver_train[(not liver_train.RECEIVED_TX)]
             #liver_test = liver_test[(not liver_test.RECEIVED_TX)]
 
-            DATA = DATA[(not DATA.RECEIVED_TX)]
+            DATA = DATA[DATA.RECEIVED_TX == False]
         else:
             #liver_train = liver_train[liver_train.RECEIVED_TX]
             #liver_test = liver_test[liver_test.RECEIVED_TX]
@@ -186,8 +187,8 @@ class UNOS2UKRegDataModule(OrganDataModule):
         self._train_processed, self._test_processed = liver_train, liver_test
 
 class UKRegDataModule(OrganDataModule):
-    def __init__(self, data_dir: str, batch_size: int, replace_organ: int=-1, is_synth: bool=False):
-        super().__init__(data_dir=data_dir, batch_size=batch_size, replace_organ=replace_organ, is_synth=is_synth)
+    def __init__(self, data_dir: str, batch_size: int, replace_organ: int=-1, is_synth: bool=False, test_size: float=.05):
+        super().__init__(data_dir=data_dir, batch_size=batch_size, replace_organ=replace_organ, is_synth=is_synth, test_size=test_size)
 
         self.dims = (0, 81)
 
