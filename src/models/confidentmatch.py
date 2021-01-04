@@ -175,8 +175,10 @@ def train(
 
         diff = np.abs(Y_ - Y).mean()
 
-        run.summary['test - RMSE'] = rmse
-        run.summary['test - mean diff in days'] = diff
+        run.log({
+            'test - RMSE': rmse,
+            'test - mean diff in days': diff
+        })
 
         # SAVING
         cm.save(location=run.dir)
