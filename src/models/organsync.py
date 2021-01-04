@@ -133,6 +133,9 @@ class OrganSync_Network(pl.LightningModule):
         synth_y = torch.Tensor(synth_result[2].astype('float64')).to(self.device).view(-1, 1) # is already scaled
 
 
+        rmse = torch.sqrt(self.loss(y_, y))
+        synth_rmse = torch.sqrt(self.loss(synth_y, y))
+
         # SCALE
         mean, std = self.trainer.datamodule.mean, self.trainer.datamodule.std
         y = y * std + mean
@@ -144,7 +147,10 @@ class OrganSync_Network(pl.LightningModule):
         self.log('test_loss (reg.) - mean difference in days', loss, on_epoch=True)
         self.log('test_loss (synth) - mean difference in days', synth_loss, on_epoch=True)
 
-        return loss, synth_loss
+        self.log('test_loss (reg.) - RMSE', rmse, on_epoch=True)
+        self.log('test_loss (synth) - RMSE', synth_rmse, on_epoch=True)
+
+        return loss, synth_loss, rmse, synth_rmse
 
     def synthetic_control(self, x, o): # returns a, u_ and y_
         # BUILD U FROM TRAINING
