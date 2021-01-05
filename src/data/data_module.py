@@ -172,7 +172,8 @@ class UNOS2UKRegDataModule(OrganDataModule):
             #liver_train = liver_train[liver_train.RECEIVED_TX]
             #liver_test = liver_test[liver_test.RECEIVED_TX]
             DATA = DATA[DATA.RECEIVED_TX]
-
+        
+        self.DATA = DATA
         liver_train, liver_test = train_test_split(DATA, test_size=.05)
 
         self.scaler = joblib.load(f'{self.data_dir}/scaler')
