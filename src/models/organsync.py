@@ -178,7 +178,8 @@ class OrganSync_Network(pl.LightningModule):
             
             return a.value, a.value @ U, (a.value @ Y.numpy()).item()
 
-        result = Parallel(n_jobs=int(joblib.cpu_count()/2))(delayed(convex_opt)(u_) for u_ in u)
+        #result = Parallel(n_jobs=int(joblib.cpu_count()/2))(delayed(convex_opt)(u_) for u_ in u)
+        result = np.array([convex_opt(u_) for u_ in u])
         result = np.array(result, dtype=object)
         
         # INFER
@@ -237,7 +238,7 @@ def train(
         # LOAD DATA
         if data == 'UNOS':
             dm = UNOSDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, test_size=test_size)
-        if data == 'U2U':
+        elif data == 'U2U':
             dm = UNOS2UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, control=control, test_size=test_size)
         else:
             dm = UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, test_size=test_size)
@@ -267,6 +268,8 @@ def train(
 
         # TEST NETWORK
         trainer.test(datamodule=dm)
+
+        wandb.run.join()
     
     wandb.finish()
 

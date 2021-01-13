@@ -235,7 +235,7 @@ def train(
         # LOAD DATA
         if data == 'UNOS':
             dm = UNOSDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, test_size=test_size)
-        if data == 'U2U':
+        elif data == 'U2U':
             dm = UNOS2UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, control=control, test_size=test_size)
         else:
             dm = UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, test_size=test_size)

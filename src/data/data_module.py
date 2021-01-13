@@ -65,7 +65,7 @@ class OrganDataModule(pl.LightningDataModule):
             prev_max = Y_train.max()
 
             # 1. create Y_train
-            Y_train = np.exp((X_train @ self.theta_x + O_train @ self.theta_o) / self.size(1))
+            Y_train = np.exp((X_train @ self.theta_x + O_train @ self.theta_o))
             Y_train += np.random.normal(scale=.01, size=Y_train.shape)
             synth_std = Y_train.std()
             synth_mean = Y_train.mean()
@@ -80,7 +80,7 @@ class OrganDataModule(pl.LightningDataModule):
             O_test = O_test.sample(frac=1)
 
             # 3. create Y_test
-            Y_test = np.exp(X_test @ self.theta_x + O_test @ self.theta_o)
+            Y_test = np.exp((X_test @ self.theta_x + O_test @ self.theta_o))
             Y_test *= (prev_std / synth_std)
             Y_test += (prev_mean - synth_mean)
 
