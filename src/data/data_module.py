@@ -66,7 +66,7 @@ class OrganDataModule(pl.LightningDataModule):
 
             # 1. create Y_train
             Y_train = np.exp((X_train @ self.theta_x + O_train @ self.theta_o))
-            Y_train += np.random.normal(scale=.01, size=Y_train.shape)
+            Y_train += np.random.normal(scale=.1, size=Y_train.shape)
             synth_std = Y_train.std()
             synth_mean = Y_train.mean()
 
