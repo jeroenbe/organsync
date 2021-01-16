@@ -178,8 +178,8 @@ class OrganSync_Network(pl.LightningModule):
             
             return a.value, a.value @ U, (a.value @ Y.numpy()).item()
 
-        #result = Parallel(n_jobs=int(joblib.cpu_count()/2))(delayed(convex_opt)(u_) for u_ in u)
-        result = np.array([convex_opt(u_) for u_ in u])
+        result = Parallel(n_jobs=int(joblib.cpu_count()/2))(delayed(convex_opt)(u_) for u_ in u)
+        #result = np.array([convex_opt(u_) for u_ in u])
         result = np.array(result, dtype=object)
         
         # INFER
