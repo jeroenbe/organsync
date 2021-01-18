@@ -92,9 +92,9 @@ def train(
 
         # TEST NETWORK
         dm.setup(stage='test')
-        X, O, Y, _ = dm.test_dataloader().dataset.tensors
-        X = torch.cat((X, O), dim=1).numpy()
-        Y = Y.numpy()
+        DATA_t = dm._test_processed
+        X = DATA_t[cols].to_numpy()
+        Y = DATA_t.Y.to_numpy()
         
         Y_ = ukeld.estimate(X)
         Y_ = Y_.to_numpy().reshape(-1, 1)
