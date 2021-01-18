@@ -79,7 +79,10 @@ def train(
         dm.setup(stage='fit')
 
         # CONSTRUCT MODEL
-        ukeld = UKELDModel(data=dm._train_processed, cols=np.union1d(dm.x_cols, dm.o_cols), censor_col='CENS', duration_col='Y', penalizer=penalizer)
+        DATA = dm._train_processed
+        DATA.CENS = np.abs(DATA.CENS - 1)
+
+        ukeld = UKELDModel(data=DATA, cols=np.union1d(dm.x_cols, dm.o_cols), censor_col='CENS', duration_col='Y', penalizer=penalizer)
 
         
         # TRAIN MODEL
