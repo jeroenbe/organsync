@@ -49,6 +49,7 @@ class UKELDModel:
 @click.option('--control', type=click.BOOL, default=False)
 @click.option('--is_synth', type=click.BOOL, default=False)
 @click.option('--test_size', type=float, default=.05)
+@click.option('--penalizer', type=float, default=.1)
 def train(
         wb_run,
         run_amount,
@@ -57,7 +58,8 @@ def train(
         data_dir,
         control,
         is_synth,
-        test_size):
+        test_size,
+        penalizer):
 
     for _ in range(run_amount):
         # MANUAL LOGGING
@@ -77,7 +79,7 @@ def train(
         dm.setup(stage='fit')
 
         # CONSTRUCT MODEL
-        ukeld = UKELDModel(data=dm._train_processed, cols=np.union1d(dm.x_cols, dm.o_cols), censor_col='CENS', duration_col='Y', penalizer=.1)
+        ukeld = UKELDModel(data=dm._train_processed, cols=np.union1d(dm.x_cols, dm.o_cols), censor_col='CENS', duration_col='Y', penalizer=penalizer)
 
         
         # TRAIN MODEL
