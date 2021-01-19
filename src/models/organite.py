@@ -22,13 +22,6 @@ from src.models.utils import GradientReversal
 
 class OrganITE_Network(pl.LightningModule):
 
-    # TODO x: learn cluster in self.setup(stage)
-    # TODO x: on_load_checkpoint(self, checkpoint) & on_save_checkpoint(self, checkpoint)
-    # TODO: perhaps write small API to efficiently infer
-    #   from self.cluster
-    # TODO: train this net + copy and train ConfidentMatch
-    # TODO: train simple multitask on cluster
-
     def __init__(
             self,
             input_dim,

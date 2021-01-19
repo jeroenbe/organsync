@@ -1,0 +1,6 @@
+Code adapted from https://github.com/LivSim2017/LivSim-Codes
+
+We have extended in the following way:
+- handle more covariates in Patient and Organ
+- allow more generic allocation
+- allow more generic post_transplant survival and transplant acceptance models

@@ -9,3 +9,4 @@ __init__.py
 lightning_logs
 data_exploration-checkpoint.ipynb
 model_exploration-checkpoint.ipynb
+src/LivSim_plusplus/demo_input/
