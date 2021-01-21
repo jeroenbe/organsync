@@ -186,7 +186,10 @@ class Sim():
 
 
     def _remove_patients(self, patients):
-        self.waitlist = np.delete(self.waitlist, np.where(np.array([p.id for p in self.waitlist]) in patients)[0])
+        self.waitlist = np.delete(self.waitlist, 
+        np.intersect1d(
+            np.array([p.id for p in self.waitlist]), 
+            patients, return_indices=True)[1])
 
 
     def _remove_dead_patients(self, policy) -> int:
@@ -195,8 +198,8 @@ class Sim():
         tmp = self.waitlist[dead_patients_indices]
         dead_patients_ids = np.array([p.id for p in tmp])
         
-        self._remove_patients(dead_patients_ids)                                                    # remove patients from self.waitlist
-        policy.remove_x(dead_patients_ids)                                                          # remove patients from policy: policy.remove_x(list)
+        self._remove_patients(dead_patients_ids)            # remove patients from self.waitlist
+        policy.remove_x(dead_patients_ids)                  # remove patients from policy: policy.remove_x(list)
         
         return dead_patients_ids
 
