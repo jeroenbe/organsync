@@ -177,6 +177,7 @@ class UNOS2UKRegDataModule(OrganDataModule):
         liver_train, liver_test = train_test_split(DATA, test_size=.05)
 
         self.scaler = joblib.load(f'{self.data_dir}/scaler')
+        self.real_cols = np.load(f'{self.data_dir}/liver_processed_conts.npy', allow_pickle=True)
 
 
         self.x_cols = np.load(f'{self.data_dir}/x_cols.npy', allow_pickle=True)
@@ -188,10 +189,11 @@ class UNOS2UKRegDataModule(OrganDataModule):
         self._train_processed, self._test_processed = liver_train, liver_test
 
 class UKRegDataModule(OrganDataModule):
-    def __init__(self, data_dir: str, batch_size: int, replace_organ: int=-1, is_synth: bool=False, test_size: float=.05):
+    def __init__(self, data_dir: str, batch_size: int, replace_organ: int=-1, is_synth: bool=False, test_size: float=.05, control: bool=False,):
         super().__init__(data_dir=data_dir, batch_size=batch_size, replace_organ=replace_organ, is_synth=is_synth, test_size=test_size)
 
         self.dims = (0, 79)
+        self.control = control
 
     def prepare_data(self):
 
@@ -206,10 +208,15 @@ class UKRegDataModule(OrganDataModule):
         self.x_cols = np.union1d(xm1, xm2)
         self.x_cols = np.setdiff1d(self.x_cols, ['PSURV', 'rwtime'])
         self.o_cols = np.load(f'{self.data_dir}/o_cols_m2.npy', allow_pickle=True)
-        #self.real_cols = np.load(f'{self.data_dir}/impute.npy', allow_pickle=True)
+        self.real_cols = np.load(f'{self.data_dir}/impute.npy', allow_pickle=True)
+        self.real_cols = np.array([*self.real_cols, 'Y'])
         self.scaler = joblib.load(f'{self.data_dir}/scaler')
 
-        self.DATA.loc[self.DATA.DCOD_0.isnull(), self.o_cols] = self.replace_organ
+        if self.control:
+            self.o_cols = []
+            self.DATA = self.DATA.loc[self.DATA.DCOD_0.isnull(), :]
+        else:
+            self.DATA.loc[self.DATA.DCOD_0.isnull(), self.o_cols] = self.replace_organ
         self.DATA.replace(np.nan, self.replace_organ, inplace=True)
 
         self._train_processed, self._test_processed = train_test_split(self.DATA, test_size=.2)

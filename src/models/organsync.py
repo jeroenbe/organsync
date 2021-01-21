@@ -241,8 +241,9 @@ def train(
         elif data == 'U2U':
             dm = UNOS2UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, control=control, test_size=test_size)
         else:
-            dm = UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, test_size=test_size)
-        #dm.setup(stage='fit')
+            dm = UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, test_size=test_size, control=control)
+        dm.prepare_data()
+        dm.setup(stage='fit')
 
         # CONSTRUCT MODEL
         input_dim = dm.size(1)
