@@ -45,7 +45,7 @@ class Policy(ABC):
         self.test = dm._test_processed # always perform on test set
     
     @abstractclassmethod
-    def get_xs(self, organ: int) -> int:
+    def get_xs(self, organs: list) -> int:
         # Given the internal state of the transplant system
         # waitlist, and a new organ, a patient is suggested.
         # For each patient the ID is used/returned; the policy may 
@@ -58,7 +58,7 @@ class Policy(ABC):
         pass
 
     @abstractclassmethod
-    def add_x(self, x: int):
+    def add_x(self, x: list):
         # Whenever a patient enters the transplant system
         # add_x is called. It is the policies task to maintain
         # system state.
@@ -69,7 +69,7 @@ class Policy(ABC):
         pass
     
     @abstractclassmethod
-    def remove_x(self, x: int):
+    def remove_x(self, x: list):
         # Removes x from the waitlist; happens when they
         # died prematurely. It is the Sim's responsibility
         # to define when a patients dies. As long as the patient
@@ -96,9 +96,10 @@ class MELD(Policy):
         self._setup()
     
     def _get_x(self, organ):
+        if not len(self.waitlist):
+            pass
         X = max(self.waitlist, key=attrgetter('covariates'))
-        self.waitlist = np.delete(self.waitlist, np.where(np.array([p.id for p in self.waitlist]) == X.id)[0].item())
-
+        self.remove_x([X.id])
         return X.id
     
     def get_xs(self, organs):
@@ -125,12 +126,11 @@ class MELD(Policy):
         ps.loc[:, self.dm.real_cols] = self.dm.scaler.inverse_transform(ps[self.dm.real_cols])
 
         # DEFINITION OF (standard) MELD: https://en.wikipedia.org/wiki/Model_for_End-Stage_Liver_Disease#Determination
-        # FOR MELD-na: MELD+1.59*(135-SODIUM(mmol/l)): https://github.com/kartoun/meld-plus/raw/master/MELD_Plus_Calculator.xlsx
         MELD_score = 3.79 * np.log(ps.SERUM_BILIRUBIN) + 11.2 * np.log(ps.INR) + 9.57 * np.log(ps.SERUM_CREATININE) + 6.43
         return  MELD_score.to_numpy()
 
     def remove_x(self, x):
-        self.waitlist = np.delete(self.waitlist, np.where(np.array([p.id for p in self.waitlist]) == x)[0].item())
+        self.waitlist = np.delete(self.waitlist, np.where(np.array([p.id for p in self.waitlist]) == x)[0])
 
 class MELD_na(MELD):
     def __init__(self, name, initial_waitlist, dm):
@@ -143,7 +143,8 @@ class MELD_na(MELD):
 
         ps = self.test.loc[self.test.index.isin(patients)].copy()
         ps.loc[:, self.dm.real_cols] = self.dm.scaler.inverse_transform(ps[self.dm.real_cols])
-
-        MELD_score = 3.79 * np.log(ps.SERUM_BILIRUBIN) + 11.2 * np.log(ps.INR) + 9.57 * np.log(ps.SERUM_CREATININE) + 6.43 + 1.59 * (135 - ps.SERUM_SODIUM)
+        
+        # MELD-na: MELD + 1.59*(135-SODIUM(mmol/l)) (https://github.com/kartoun/meld-plus/raw/master/MELD_Plus_Calculator.xlsx)
+        MELD_score = super()._meld(patients) + 1.59 * (135 - ps.SERUM_SODIUM)
         return MELD_score.to_numpy()
 
