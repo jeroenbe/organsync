@@ -32,13 +32,15 @@ class Sim_Patient:
 @dataclass
 class Stats:
     deaths: int=0
+    patients_seen: int=0
     population_life_years: float=0
     transplant_count: int=0
-    patients_transplanted: dict=field(default_factory=dict) # should be a dict of np.array w shape (2, n_patients_on_day)
+    patients_transplanted: dict=field(default_factory=dict) # should be a dict of day: np.array w shape (2, n_patients_on_day)
+    organs_transplanted: dict=field(default_factory=dict) 
+    patients_died: dict=field(default_factory=dict)         # dict of day: np.array
 
     def __str__(self):
         return f'Deaths: {self.deaths}\nPopulation life-years: {self.population_life_years}\nTransplant count: {self.transplant_count}'
-    
         
 
 class Inference(ABC):
@@ -143,7 +145,7 @@ class Sim():
         #   self.iterate(policy)
 
         for day in range(self.days):
-            self.iterate(policy)
+            self.iterate(policy, day)
 
 
         return self.stats
@@ -153,7 +155,7 @@ class Sim():
         pass
     
 
-    def iterate(self, policy):
+    def iterate(self, policy, _day):
         
         dead_patients = self._remove_dead_patients(policy)  # remove dead patients from waitlist (also in policy)
         amount_died = len(dead_patients)
@@ -181,6 +183,11 @@ class Sim():
         self.stats.deaths += amount_died                        # update statistics
         self.stats.population_life_years += ttl.sum()
         self.stats.transplant_count += len(transplant_patients)
+        
+        self.stats.patients_died[f'{_day}'] = dead_patients
+        self.stats.patients_transplanted[f'{_day}'] = transplant_patients
+        self.stats.organs_transplanted[f'{_day}'] = organs
+
 
         self._age_patients()
 

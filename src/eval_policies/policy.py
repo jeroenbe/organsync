@@ -96,8 +96,9 @@ class MELD(Policy):
         self._setup()
     
     def _get_x(self, organ):
-        if not len(self.waitlist):
+        if len(self.waitlist) == 0:
             pass
+
         X = max(self.waitlist, key=attrgetter('covariates'))
         self.remove_x([X.id])
         return X.id
@@ -106,6 +107,9 @@ class MELD(Policy):
         return np.array([self._get_x(organ) for organ in organs])
 
     def add_x(self, x):
+        if len(x) == 0:
+            pass
+
         MELD_score = self._meld(x)
         
         X = [Patient(id=x[i], covariates=MELD_score[i]) for i in range(len(x))]
@@ -148,3 +152,24 @@ class MELD_na(MELD):
         MELD_score = super()._meld(patients) + 1.59 * (135 - ps.SERUM_SODIUM)
         return MELD_score.to_numpy()
 
+class FIFO(Policy):
+    def __init__(self, name, initial_waitlist, dm):
+        super().__init__(name, initial_waitlist, dm)
+
+class TransplantBenefit(Policy):
+    def __init__(self, name, initial_waitlist, dm):
+        super().__init__(name, initial_waitlist, dm)
+
+class ConfidentMatch(Policy):
+    def __init__(self, name, initial_waitlist, dm):
+        super().__init__(name, initial_waitlist, dm)
+
+
+class OrganITE(Policy):
+    def __init__(self, name, initial_waitlist, dm):
+        super().__init__(name, initial_waitlist, dm)
+
+
+class OrganSync(Policy):
+    def __init__(self, name, initial_waitlist, dm):
+        super().__init__(name, initial_waitlist, dm)
