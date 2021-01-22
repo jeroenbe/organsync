@@ -222,8 +222,7 @@ class Sim():
         )).item()                                                           # patient_count / days. Note, the scale may be adjusted
         n = int(n)                                                          # should this be too extreme
 
-        indices = np.random.randint(0, len(self.patients), (n, ))
-        patients = self.patients.iloc[indices].index
+        patients = self.patients.sample(n=n).index
 
         new_patients = np.array([
             Sim_Patient(
@@ -245,8 +244,7 @@ class Sim():
         )).item()
         n = int(n)
 
-        indices = np.random.randint(0, len(self.organs), (n, ))
-        organs = self.organs.iloc[indices].index
+        organs = self.organs.sample(n=n).index
         return np.array(organs)
 
 

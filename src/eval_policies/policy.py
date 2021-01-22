@@ -111,7 +111,6 @@ class MELD(Policy):
             pass
 
         MELD_score = self._meld(x)
-        
         X = [Patient(id=x[i], covariates=MELD_score[i]) for i in range(len(x))]
 
         self.waitlist = np.append(self.waitlist, X)
@@ -121,6 +120,7 @@ class MELD(Policy):
         MELD_score = self._meld(self.waitlist)
 
         self.waitlist = np.array([Patient(id=self.waitlist[i], covariates=MELD_score[i]) for i in range(len(self.waitlist))])
+        self.waitlist = np.unique(self.waitlist)
 
     def _meld(self, patients):
         # params - 
@@ -155,6 +155,20 @@ class MELD_na(MELD):
 class FIFO(Policy):
     def __init__(self, name, initial_waitlist, dm):
         super().__init__(name, initial_waitlist, dm)
+    
+    def remove_x(self, x: list):
+        self.waitlist = np.delete(self.waitlist, np.where(self.waitlist == x)[0])
+    
+    def add_x(self, x: list):
+        self.waitlist = np.append(self.waitlist, x)
+    
+    def get_xs(self, organs: list):
+        patients = self.waitlist[:len(organs)]
+        self.remove_x(patients)
+
+        return patients
+
+
 
 class TransplantBenefit(Policy):
     def __init__(self, name, initial_waitlist, dm):
