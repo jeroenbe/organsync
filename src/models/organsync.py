@@ -153,9 +153,10 @@ class OrganSync_Network(pl.LightningModule):
 
         return loss, synth_loss, rmse, synth_rmse
 
-    def synthetic_control(self, x, o): # returns a, u_ and y_
+    def synthetic_control(self, x, o, n=1000, solver=cp.SCS): # returns a, u_ and y_
         # BUILD U FROM TRAINING
-        X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset[:1000]
+        indices = torch.randint(0, len(self.trainer.datamodule._train_processed), (n,))
+        X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset[indices]
         catted = torch.cat((X, O), dim=1).double()
         if torch.cuda.is_available():
             catted = catted.cuda()
@@ -174,12 +175,11 @@ class OrganSync_Network(pl.LightningModule):
             constraints = [0 <= a, a <= 1, cp.sum(a) == 1]
             prob = cp.Problem(objective, constraints)
 
-            prob.solve(warm_start=True, solver=cp.SCS)
+            prob.solve(warm_start=True, solver=solver)
             
             return a.value, a.value @ U, (a.value @ Y.numpy()).item()
 
-        result = Parallel(n_jobs=int(joblib.cpu_count()/2))(delayed(convex_opt)(u_) for u_ in u)
-        #result = np.array([convex_opt(u_) for u_ in u])
+        result = Parallel(n_jobs=int(joblib.cpu_count()))(delayed(convex_opt)(u_) for u_ in u)
         result = np.array(result, dtype=object)
         
         # INFER
@@ -190,7 +190,7 @@ class OrganSync_Network(pl.LightningModule):
         mean, std = self.trainer.datamodule.mean, self.trainer.datamodule.std
         synth_y_scaled = synth_y * std + mean
 
-        return a_s, u_s, synth_y_scaled, synth_y
+        return a_s, u_s, synth_y_scaled, synth_y, indices
 
 
 @click.command()

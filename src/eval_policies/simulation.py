@@ -1,7 +1,10 @@
 import numpy as np
 import pandas as pd
+import cvxpy as cp
 
 import torch
+
+from tqdm import tqdm
 
 from dataclasses import dataclass, field
 
@@ -49,30 +52,32 @@ class Inference(ABC):
         self.mean = mean
         self.std = std
     
-    def __call__(self, x):
-        return self.infer(x)
+    def __call__(self, x, *args, **kwargs):
+        return self.infer(x, *args, **kwargs)
     
     @abstractclassmethod
-    def infer(self, x):
+    def infer(self, x, *args, **kwargs):
         pass
 
 class Inference_OrganSync(Inference):
-    def __init__(self, model: OrganSync_Network, mean, std, SC: bool=False):
+    def __init__(self, model: OrganSync_Network, mean, std):
         super().__init__(model, mean, std)
-
-        self.SC = SC
     
-    def infer(self, x, o=None):
+    def infer(self, x, o=None, SC=False):
         with torch.no_grad():
             x = torch.Tensor(x).double()
-            
-            if self.SC and o is not None:
+
+            if SC and o is not None:
                 o = torch.Tensor(o).double()
-                _, _, y, synth_y = self.model.synthetic_control(x, o)
+                a, _, y, _, ixs = self.model.synthetic_control(x, o, n=1500)
             else:
+                a, ixs = None, None
+                if o is not None:
+                    o = torch.Tensor(o).double()
+                    x = torch.cat((x, o), dim=1)
                 y = self.model(x)
                 y = y * self.std + self.mean
-            return y
+            return y, a, ixs
 
 
 # SIMULATION OVERVIEW:
@@ -120,7 +125,7 @@ class Sim():
         self.initial_waitlist_size = initial_waitlist_size  # multiple runs with one Sim object.
 
         X_tmp = torch.Tensor(self.DATA[self.dm.x_cols].to_numpy())      # Add time to live (ttl) column
-        self.DATA.loc[:,'ttl'] = self.inference_0(X_tmp).numpy()        # to DATA using inference_0
+        self.DATA.loc[:,'ttl'] = self.inference_0(X_tmp)[0].numpy()     # to DATA using inference_0
 
 
         self._setup()
@@ -143,17 +148,11 @@ class Sim():
     def simulate(self, policy) -> Stats:
         # while not stop_critierum
         #   self.iterate(policy)
-
-        for day in range(self.days):
+        for day in tqdm(range(self.days)):
             self.iterate(policy, day)
-
 
         return self.stats
 
-
-    def _update_stats(self):
-        pass
-    
 
     def iterate(self, policy, _day):
         
@@ -173,7 +172,7 @@ class Sim():
             transplant_patients].to_numpy() 
         
         catted = np.append(patients_cov, organs_cov, axis=1)    # calculate time to live (ttl) with organ using inference_1
-        ttl = np.array([self.inference_1(x) for x in catted])
+        ttl = np.array([self.inference_1(x)[0] for x in catted])
 
         self._remove_patients(transplant_patients)              # remove transplanted patients from waitlist
                                                                 # note that transplant_patients are automatically
@@ -208,6 +207,9 @@ class Sim():
         self._remove_patients(dead_patients_ids)            # remove patients from self.waitlist
         policy.remove_x(dead_patients_ids)                  # remove patients from policy: policy.remove_x(list)
         
+        ttl = self.DATA.iloc[dead_patients_indices].ttl.to_numpy()
+
+        self.stats.population_life_years += ttl.sum()
         return dead_patients_ids
 
 
