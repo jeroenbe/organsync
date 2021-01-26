@@ -1,7 +1,7 @@
 import heapq
 import numpy as np
 import pandas as pd
-import lifelines
+import lifelines, scipy
 
 from sklearn.cluster import KMeans
 
@@ -121,8 +121,11 @@ class MELD(Policy):
         return X.id
     
     def get_xs(self, organs):
-        if len(organs) == 0:
+        if len(organs) == 0 or len(self.waitlist) == 0:
             return np.array([])
+
+        if len(organs) > len(self.waitlist):
+            return np.array([self._get_x(organs[i]) for i in range(len(self.waitlist))])
         return np.array([self._get_x(organ) for organ in organs])
 
     def add_x(self, x):
@@ -153,7 +156,8 @@ class MELD(Policy):
         return  MELD_score.to_numpy()
 
     def remove_x(self, x):
-        self.waitlist = np.delete(self.waitlist, np.where(np.array([p.id for p in self.waitlist]) == x)[0])
+        for patient in x:
+            self.waitlist = np.delete(self.waitlist, np.where(np.array([p.id for p in self.waitlist]) == patient)[0])
 
 class MELD_na(MELD):
     def __init__(self, name, initial_waitlist, dm):
@@ -177,7 +181,8 @@ class FIFO(Policy):
         super().__init__(name, initial_waitlist, dm)
     
     def remove_x(self, x: list):
-        self.waitlist = np.delete(self.waitlist, np.where(self.waitlist == x)[0])
+        for patient in x:
+            self.waitlist = np.delete(self.waitlist, np.where(self.waitlist == patient)[0])
     
     def add_x(self, x: list):
         self.waitlist = np.append(self.waitlist, x)
@@ -189,24 +194,183 @@ class FIFO(Policy):
         return patients
 
 
-# Contemporary UK policy
-class TransplantBenefit(Policy):
+class MaxPolicy(Policy):
     def __init__(self, name, initial_waitlist, dm):
         super().__init__(name, initial_waitlist, dm)
+
+        self._setup()
+    
+    def _setup(self):
+        self.x_cols = self.dm.x_cols
+        waitlist_patients = self.test.loc[self.waitlist, self.x_cols].copy().to_numpy()
+
+        self.waitlist = np.array([Patient(id=self.waitlist[i], covariates=waitlist_patients[i]) for i in range(len(self.waitlist))])
+        self.waitlist = np.unique(self.waitlist)
+    
+    
+    def get_xs(self, organs: list) -> int:
+        if len(organs) == 0 or len(self.waitlist) == 0:
+            return np.array([])
+        
+        if len(organs) > len(self.waitlist):
+            for i in range(len(self.waitlist)):
+                patient_ids = [self._get_x(organs[i]) for i in range(len(self.waitlist))]
+                return patient_ids
+
+        patient_ids = [self._get_x(organ) for organ in organs]
+
+        return patient_ids
+
+
+    def _get_x(self, organ):
+        patient_covariates = np.array([p.covariates for p in self.waitlist])
+        organ_covariates = self.test.loc[organ, self.dm.o_cols].to_numpy()
+
+        scores = self._calculate_scores(patient_covariates, [organ_covariates])
+        top_index = np.argmax(scores)
+        patient_id = self.waitlist[top_index].id
+        self.remove_x([patient_id])
+
+        return patient_id
+
+    def add_x(self, x: list):
+        if len(x) == 0:
+            return
+
+        patient_covariates = self.test.loc[x, self.x_cols].copy().to_numpy()
+        patients = [Patient(id=x[i], covariates=patient_covariates[i]) for i in range(len(x))]
+        self.waitlist = np.append(self.waitlist, patients)
+        self.waitlist = np.unique(self.waitlist)
+
+    def remove_x(self, x: list):
+        for patient in x:
+            self.waitlist = np.delete(self.waitlist, np.where(np.array([p.id for p in self.waitlist]) == patient)[0])
+    
+    
+    @abstractclassmethod
+    def _calculate_scores(self, x_covariates: list, o_covariates: list) -> float:
+        # this method should return, for each patient in 
+        # x_covariates, the score of that patient associated
+        # with o_covariates. Note that o_covariates is just 
+        # one organ. This allows to remove the selected patient
+        # from the waitlist.
+        pass
+
+
+
+
+
+# Contemporary UK policy
+class TransplantBenefit(MaxPolicy):
+    def __init__(self, name, initial_waitlist, dm, inference):
+        super().__init__(name, initial_waitlist, dm)
+
+        self.inference = inference
+        
+
+    def _setup(self):
+        self.x_cols = self.dm.x_cols[self.dm.x_cols != 'CENS']
+        waitlist_patients = self.test.loc[self.waitlist, self.x_cols].copy().to_numpy()
+
+        self.waitlist = np.array([Patient(id=self.waitlist[i], covariates=waitlist_patients[i]) for i in range(len(self.waitlist))])
+        self.waitlist = np.unique(self.waitlist)
+    
+    def _calculate_scores(self, x_covariates, o_covariates) -> float:
+        return [self.inference(np.array([patient]), o_covariates) for patient in x_covariates]
 
 # ML-based policies
 #   NOTE: ConfidentMatch and TransplantBenefit are essentially
 #       the same policy, where we maximise some inferred value.
 #       Also MELD and MELD_na fall in this category, though the
 #       inference is not stochastic
-class ConfidentMatch(Policy):
-    def __init__(self, name, initial_waitlist, dm):
+class ConfidentMatch(MaxPolicy):
+    def __init__(self, name, initial_waitlist, dm, inference):
         super().__init__(name, initial_waitlist, dm)
 
+        self.inference = inference
 
-class OrganITE(Policy):
-    def __init__(self, name, initial_waitlist, dm):
+    def _calculate_scores(self, x_covariates, o_covariates) -> float:
+        return [self.inference(np.array([patient]), o_covariates) for patient in x_covariates]
+
+
+class OrganITE(MaxPolicy):
+    def __init__(self, name, initial_waitlist, dm, inference_ITE, inference_VAE, a: float=1.0, b: float=1.0):
         super().__init__(name, initial_waitlist, dm)
+        self.inference_ITE = inference_ITE
+        self.inference_VAE = inference_VAE
+
+        self.a = a
+        self.b = b
+    
+    def _setup(self):
+        super()._setup()
+        
+        #self.k_means = self.inference_ITE.model.cluster                                 # LOAD CLUSTERS FROM inference_ITE
+
+    def _calculate_scores(self, x_covariates: list, o_covariates) -> float:
+        scores = [self._calculate_score(np.array([patient]), np.array(o_covariates, dtype=float)) for patient in x_covariates]
+
+        return scores
+
+    def _calculate_score(self, patient, organ):
+        ITE = self.inference_ITE(patient, organ)
+
+        ITE *= self._get_lambda(patient, organ)
+
+        return ITE
+    
+    def _get_optimal_organ(self, patient):
+        sample_organs = self.dm._train_processed.sample(n=512)[self.dm.o_cols].to_numpy()
+        repeated_patients = np.repeat(patient, 512, axis=0)
+        ITEs = self.inference_ITE(repeated_patients, sample_organs)
+        optimal_organ_ix = np.argmax(ITEs)
+        optimal_organ = sample_organs[optimal_organ_ix]
+
+        return optimal_organ
+
+
+    def _get_lambda(self, patient, organ):
+        optimal_organ = self._get_optimal_organ(patient)
+        propensity = self._get_propensities([optimal_organ])
+        distance = self._get_distances(optimal_organ, organ)
+
+        lam = ((propensity + .000001) ** (-self.a)) * (distance + .000001 ** (-self.b))
+        return lam
+    
+    def _get_distances(self, organ_A, organ_B):
+        distance = scipy.spatial.distance.euclidean(organ_A, organ_B)
+        return distance
+
+
+    def _get_ITE(self, organ):
+        patients = np.array([p.covariates for p in self.waitlist])
+        organs = np.repeat(organ, len(patients), axis=0)
+        null_organs = np.zeros(organs.shape)
+
+        Y_1 = self.inference_ITE(patients, organs)
+        Y_0 = self.inference_ITE(patients, null_organs)
+
+        return (Y_1 - Y_0).numpy()
+
+    def _get_propensities(self, o_covariates: list):
+        return self.inference_VAE(o_covariates)
+
+
+    def _get_patients(self, x: list, train: bool=False):
+        return self._get_instances(x, self.dm.x_cols, data_class=Patient, train=train)
+    
+    def _get_organs(self, o: list, train: bool=False):
+        return self._get_instances(o, self.dm.o_cols, data_class=Organ, train=train)
+
+    def _get_instances(self, l: list, cols: list, data_class: dataclass, train: bool=False):
+        data = self.test
+        if train:
+            data = self.dm._train_processed
+        covariates = data.loc[data.index.isin(l), cols].copy()
+        types = np.array([data_class(id=l[i], covariates=covariates.iloc[i].to_numpy()) for i in range(len(l))])
+
+        return types
+
 
 
 @dataclass(order=True)
@@ -247,7 +411,7 @@ class OrganSync(Policy):
             train=True)                                                                 # we than use these amounts to compute an estimate
         amount = Counter(np.array(inferred_optimal_queues).flatten())                   # for the incoming rate into each queue
 
-        self.queue_rates = {i: amount[i] / 500 for i in amount.keys()}                  # each queue gets assigned its incoming rate
+        self.queue_rates = {i: amount[i] / 5000 for i in amount.keys()}                 # each queue gets assigned its incoming rate
 
         self.add_x(self.waitlist)
 
@@ -304,7 +468,7 @@ class OrganSync(Policy):
         for i, prioritized_patient in enumerate(prioritized_patients):
             assigned=False
             for j in optimal_organ_clusters[i]:
-                if not assigned and prioritized_patient.priority > wait_times[i, j]:
+                if prioritized_patient.priority > wait_times[i, j] and not assigned:
                     heapq.heappush(self.queues[j], prioritized_patient)
                     assigned=True
 
@@ -339,15 +503,18 @@ class OrganSync(Policy):
         priorities = []
         for c in contributors:
             sparse_train_set = dm_0._train_processed.iloc[c]
-            naf = lifelines.NelsonAalenFitter()                                         # in order to calculate the hazard of 
-            naf.fit(                                                                    # a kaplan-meier survival function one
-                sparse_train_set.Y * dm_0.std + dm_0.mean,                              # has to use a nelson-aalen fitter
+            kmf = lifelines.KaplanMeierFitter()                                         # Kaplain-meier has no expected time to 
+            kmf.fit(                                                                    # event in lifelines. Instead we take the
+                sparse_train_set.Y * dm_0.std + dm_0.mean,                              # median, i.e., before the median, 50% died
                 event_observed=sparse_train_set.CENS)
 
-            priority = naf.cumulative_hazard_.sum().item()                              # note that in the paper, those with lowest
-                                                                                        # priority go first. this is the same here
+            priority = kmf.median_survival_time_                                        # note that in the paper, those with highest
+            priorities.append(priority)                                                 # priority go first. this is the same here
                                                                                         # as python uses a min-heap as priority queue
-            priorities.append(priority)
+                                                                                        # as such, we take the median survival time, if
+                                                                                        # a more standard max-heap is used, we recommend
+                                                                                        # the expected hazard (using, e.g. a Nelson-Aalen 
+                                                                                        # estimate), like described in the paper
 
         return priorities
 
@@ -379,3 +546,4 @@ class OrganSync(Policy):
         types = np.array([data_class(id=l[i], covariates=covariates.iloc[i].to_numpy()) for i in range(len(l))])
 
         return types
+

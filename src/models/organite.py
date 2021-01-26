@@ -178,6 +178,131 @@ class OrganITE_Network(pl.LightningModule):
         return loss
 
 
+class OrganITE_Network_VAE(pl.LightningModule):
+    def __init__(self, 
+            input_dim,
+            hidden_dim,
+            output_dim,
+            lr, gamma,
+            weight_decay,):
+        
+        super().__init__()
+        
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.output_dim = output_dim
+
+        self.z_dim = 2
+
+        self.lr = lr
+        self.gamma = gamma
+        self.weight_decay = weight_decay
+
+        self.enc = nn.Sequential(
+            nn.Linear(self.input_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.output_dim),
+            nn.ReLU(),
+        )
+
+        self.mean = nn.Linear(self.output_dim, self.z_dim)
+
+        self.logvar = nn.Linear(self.output_dim, self.z_dim)
+
+        self.dec = nn.Sequential(
+            nn.Linear(self.z_dim, self.output_dim),
+            nn.ReLU(),
+            nn.Linear(self.output_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.input_dim),
+        )
+
+        self.mu_x = nn.Linear(self.input_dim, self.input_dim)
+        self.logvar_x = nn.Linear(self.input_dim, self.input_dim)
+
+        self.save_hyperparameters()
+
+    
+    # PYTORCH
+    def encode(self, x):
+        z = self.enc(x)
+        z_mean = self.mean(z)
+        z_logvar = self.logvar(z)
+        return z_mean, z_logvar
+
+    
+    def reparameterize(self, z_mean, z_logvar):
+        epsilon = torch.randn_like(z_mean)
+        std = torch.exp(.5*z_logvar)
+
+        return z_mean + (z_logvar * epsilon)
+    
+
+    def decode(self, z):
+        x = self.dec(z)
+        mu_x = self.mu_x(x)
+        logvar_x = self.logvar_x(x)
+
+        return mu_x, logvar_x
+    
+    def forward(self, x):
+        z_mean, z_logvar = self.encode(x)
+        z = self.reparameterize(z_mean, z_logvar)
+
+        mu_x, logvar_x = self.decode(z)
+
+        return mu_x, logvar_x, z_mean, z_logvar
+
+    def loss(self, mu_x, logvar_x, x, mu, logvar):
+        LL = np.log(2 * np.pi) + torch.sum(logvar_x + (x - mu_x).pow(2) / (torch.exp(logvar_x).pow(2)))
+
+        KLD = -.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        return LL + KLD
+
+    # LIT METHODS
+
+    def configure_optimizers(self):
+        optimiser = optim.Adam(self.parameters(), lr=self.lr)
+        scheduler = optim.lr_scheduler.ExponentialLR(optimiser, self.gamma)
+        return [optimiser], [scheduler]
+    
+    def training_step(self, batch, ix):
+        _, x, _, _ = batch # only organ density
+        mu_x, logvar_x, mu, logvar = self.forward(x)
+        loss = self.loss(mu_x, logvar_x, x, mu, logvar)
+
+        self.log('train_loss', loss, on_epoch=True)
+
+        return loss
+
+    def validation_step(self, batch, ix):
+        _, x, _, _ = batch # only organ density
+        mu_x, logvar_x, mu, logvar = self.forward(x)
+        loss = self.loss(mu_x, logvar_x, x, mu, logvar)
+
+        self.log('val_loss', loss, on_epoch=True)
+
+        return loss
+
+    def p(self, organ: np.ndarray) -> float:
+        
+        resolution = 1000
+        with torch.no_grad():
+            organ = torch.tensor(organ)
+            latents = torch.randn(resolution, self.z_dim).double()
+
+            mu_z_i, logvar_z_i = self.decode(latents)
+            var_z_i = torch.diag_embed(torch.exp(logvar_z_i))
+
+        N = torch.distributions.MultivariateNormal(mu_z_i, var_z_i)
+
+        tiled = organ.repeat(resolution, 1)
+
+        prob = N.log_prob(tiled).exp().mean()
+
+
+        return prob.item()
+
 
 @click.command()
 @click.option('--lr', type=float, default=.005)
@@ -236,6 +361,7 @@ def train(
 
         # CONSTRUCT MODEL
         input_dim = dm.size(1)
+        print(input_dim)
         model = OrganITE_Network(
             input_dim=input_dim, 
             hidden_dim=hidden_dim,
@@ -262,5 +388,70 @@ def train(
     
     wandb.finish()
 
+
+@click.command()
+@click.option('--lr', type=float, default=.005)
+@click.option('--gamma', type=float, default=.9)
+@click.option('--weight_decay', type=float, default=1e-3)
+@click.option('--epochs', type=int, default=30)
+@click.option('--wb_run', type=str, default='organsync-organite-po-net')
+@click.option('--batch_size', type=int, default=128)
+@click.option('--data', type=str, default='UNOS')
+@click.option('--data_dir', type=str, default='./data/processed')
+@click.option('--output_dim', type=int, default=8)
+@click.option('--hidden_dim', type=int, default=16)
+@click.option('--control', type=click.BOOL, default=False)
+@click.option('--is_synth', type=click.BOOL, default=False)
+@click.option('--test_size', type=float, default=.05)
+def train_vae(
+        lr,
+        gamma,
+        weight_decay,
+        epochs,
+        wb_run,
+        batch_size,
+        data,
+        data_dir,
+        output_dim,
+        hidden_dim,
+        control,
+        is_synth,
+        test_size):
+
+    # LOAD DATA
+    if data == 'UNOS':
+        dm = UNOSDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, test_size=test_size)
+    elif data == 'U2U':
+        dm = UNOS2UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, control=control, test_size=test_size)
+    else:
+        dm = UKRegDataModule(data_dir, batch_size=batch_size, is_synth=is_synth, test_size=test_size)
+    dm.prepare_data()
+    dm.setup(stage='fit')
+
+    # CONSTRUCT MODEL
+    input_dim = len(dm.o_cols)
+    model = OrganITE_Network_VAE(
+        input_dim=input_dim, 
+        hidden_dim=hidden_dim,
+        output_dim=output_dim, 
+        lr=lr, gamma=gamma, weight_decay=weight_decay,).double()
+
+    # SETUP LOGGING CALLBACKS
+    wb_logger = WandbLogger(project=wb_run, log_model=True)
+    checkpoint_callback = ModelCheckpoint(monitor='val_loss', filename='organite_vae_net', dirpath=wb_logger.experiment.dir)
+
+    # SETUP GPU
+    gpus = 1 if torch.cuda.is_available() else 0
+
+    # TRAIN NETWORK
+    trainer = Trainer(logger=wb_logger, callbacks=[checkpoint_callback], max_epochs=epochs, gpus=gpus)
+    trainer.fit(model, datamodule=dm)
+
+    # TEST NETWORK
+    trainer.test(datamodule=dm)
+    
+    wandb.finish()
+
 if __name__ == "__main__":
-    train()
+    #train()
+    train_vae()

@@ -46,7 +46,6 @@ class UKELDModel:
 @click.option('--group', type=str, default=None)
 @click.option('--data', type=str, default='U2U')
 @click.option('--data_dir', type=str, default='./data/processed_UNOS2UKReg_no_split')
-@click.option('--control', type=click.BOOL, default=False)
 @click.option('--is_synth', type=click.BOOL, default=False)
 @click.option('--test_size', type=float, default=.05)
 @click.option('--penalizer', type=float, default=.1)
@@ -56,7 +55,6 @@ def train(
         group,
         data,
         data_dir,
-        control,
         is_synth,
         test_size,
         penalizer):
@@ -72,7 +70,7 @@ def train(
         if data == 'UNOS':
             dm = UNOSDataModule(data_dir, batch_size=256, is_synth=is_synth, test_size=test_size)
         if data == 'U2U':
-            dm = UNOS2UKRegDataModule(data_dir, batch_size=256, is_synth=is_synth, control=control, test_size=test_size)
+            dm = UNOS2UKRegDataModule(data_dir, batch_size=256, is_synth=is_synth, test_size=test_size)
         else:
             dm = UKRegDataModule(data_dir, batch_size=256, is_synth=is_synth, test_size=test_size)
         dm.prepare_data()
