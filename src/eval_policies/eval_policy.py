@@ -70,8 +70,8 @@ def main(k, wl, od, pc, data, location, wandb_project):
     params_1 = wandb.restore(f'organsync_net.ckpt-v0.ckpt', run_path=f'jeroenbe/{project}/{model_id_1}', replace=True)
     model_1 = OrganSync_Network.load_from_checkpoint(params_1.name, map_location='cpu').double()
 
-    trainer_0 = pl.Trainer()
-    trainer_1 = pl.Trainer()
+    trainer_0 = pl.Trainer(gpus=0)
+    trainer_1 = pl.Trainer(gpus=0)
 
     trainer_0.datamodule = dm_control
     trainer_1.datamodule = dm
