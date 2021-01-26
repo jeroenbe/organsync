@@ -64,10 +64,10 @@ def main(k, wl, od, pc, data, location, wandb_project):
     model_id_1 = '8298slm5'
 
     params_0 = wandb.restore(f'organsync_net.ckpt-v0.ckpt', run_path=f'jeroenbe/{project}/{model_id_0}', replace=True)
-    model_0 = OrganSync_Network.load_from_checkpoint(params_0.name).double()
+    model_0 = OrganSync_Network.load_from_checkpoint(params_0.name).double().cpu()
 
     params_1 = wandb.restore(f'organsync_net.ckpt-v0.ckpt', run_path=f'jeroenbe/{project}/{model_id_1}', replace=True)
-    model_1 = OrganSync_Network.load_from_checkpoint(params_1.name).double()
+    model_1 = OrganSync_Network.load_from_checkpoint(params_1.name).double().cpu()
 
     trainer_0 = pl.Trainer()
     trainer_1 = pl.Trainer()
@@ -88,13 +88,13 @@ def main(k, wl, od, pc, data, location, wandb_project):
     # OrganITE
     model_vae_id = '122jaxpq'
     params_vae = wandb.restore(f'organite_vae_net-v0.ckpt', run_path=f'jeroenbe/{project_vae}/{model_vae_id}', replace=True)
-    O_VAE = OrganITE_Network_VAE.load_from_checkpoint(params_vae.name).double()
+    O_VAE = OrganITE_Network_VAE.load_from_checkpoint(params_vae.name).double().cpu()
     inference_oite_vae = Inference_OrganITE_VAE(model=O_VAE, mean=dm.mean, std=dm.std)
     inference_oite_vae.model.trainer = trainer_1
 
     model_oite_id = 'or6o700x'
     params_oite = wandb.restore(f'organite_net.ckpt.ckpt', run_path=f'jeroenbe/{project_oite}/{model_oite_id}', replace=True) 
-    organite_net = OrganITE_Network.load_from_checkpoint(params_oite.name).double()
+    organite_net = OrganITE_Network.load_from_checkpoint(params_oite.name).double().cpu()
     inference_oite = Inference_OrganITE(model=organite_net, mean=dm.mean, std=dm.std)
     inference_oite.model.trainer = trainer_1
 
