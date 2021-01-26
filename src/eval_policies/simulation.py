@@ -69,15 +69,15 @@ class Inference_OrganSync(Inference):
     
     def infer(self, x, o=None, SC=False):
         with torch.no_grad():
-            x = torch.Tensor(x).double()
+            x = torch.Tensor(x).double().cpu()
 
             if SC and o is not None:
-                o = torch.Tensor(o).double()
+                o = torch.Tensor(o).double().cpu()
                 a, _, y, _, ixs = self.model.synthetic_control(x, o, n=1500)
             else:
                 a, ixs = None, None
                 if o is not None:
-                    o = torch.Tensor(o).double()
+                    o = torch.Tensor(o).double().cpu()
                     x = torch.cat((x, o), dim=1)
                 y = self.model(x)
                 y = y * self.std + self.mean
