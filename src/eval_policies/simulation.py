@@ -69,15 +69,15 @@ class Inference_OrganSync(Inference):
     
     def infer(self, x, o=None, SC=False):
         with torch.no_grad():
-            x = torch.Tensor(x).double().cpu()
+            x = torch.Tensor(x).double()
 
             if SC and o is not None:
-                o = torch.Tensor(o).double().cpu()
+                o = torch.Tensor(o).double()
                 a, _, y, _, ixs = self.model.synthetic_control(x, o, n=1500)
             else:
                 a, ixs = None, None
                 if o is not None:
-                    o = torch.Tensor(o).double().cpu()
+                    o = torch.Tensor(o).double()
                     x = torch.cat((x, o), dim=1)
                 y = self.model(x)
                 y = y * self.std + self.mean
@@ -87,10 +87,12 @@ class Inference_OrganITE(Inference):
     def __init__(self, model: OrganITE_Network, mean, std):
         super().__init__(model, mean, std)
 
-    def infer(self, x, o=None):
+    def infer(self, x, o=None, replace_organ=-1):
+        # NOTE: replace_organ should fit what has been defined
+        #   at training time
         with torch.no_grad():
             if o is None:
-                o = np.zeros((len(x), len(self.model.trainer.datamodule.o_cols)))
+                o = np.full((len(x), len(self.model.trainer.datamodule.o_cols)), replace_organ)
             x = torch.Tensor(x).double()
             o = torch.Tensor(o).double()
             catted = torch.cat((x, o), dim=1)
