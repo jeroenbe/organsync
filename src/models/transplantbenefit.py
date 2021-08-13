@@ -49,6 +49,7 @@ class UKELDModel:
 @click.option('--is_synth', type=click.BOOL, default=False)
 @click.option('--test_size', type=float, default=.05)
 @click.option('--penalizer', type=float, default=.1)
+@click.option('--control', type=bool, default=False)
 def train(
         wb_run,
         run_amount,
@@ -57,7 +58,8 @@ def train(
         data_dir,
         is_synth,
         test_size,
-        penalizer):
+        penalizer,
+        control,):
 
     for _ in range(run_amount):
         # MANUAL LOGGING
@@ -70,9 +72,9 @@ def train(
         if data == 'UNOS':
             dm = UNOSDataModule(data_dir, batch_size=256, is_synth=is_synth, test_size=test_size)
         if data == 'U2U':
-            dm = UNOS2UKRegDataModule(data_dir, batch_size=256, is_synth=is_synth, test_size=test_size)
+            dm = UNOS2UKRegDataModule(data_dir, batch_size=256, is_synth=is_synth, test_size=test_size, control=control)
         else:
-            dm = UKRegDataModule(data_dir, batch_size=256, is_synth=is_synth, test_size=test_size)
+            dm = UKRegDataModule(data_dir, batch_size=256, is_synth=is_synth, test_size=test_size, control=control)
         dm.prepare_data()
         dm.setup(stage='fit')
 
@@ -81,6 +83,8 @@ def train(
         DATA.CENS = np.abs(DATA.CENS - 1)
 
         cols = np.union1d(dm.x_cols, dm.o_cols)
+        if control:
+            cols = dm.x_cols
         cols = cols[cols != 'CENS']
         ukeld = UKELDModel(data=DATA, cols=cols, censor_col='CENS', duration_col='Y', penalizer=penalizer)
 

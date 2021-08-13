@@ -159,6 +159,12 @@ class UNOS2UKRegDataModule(OrganDataModule):
 
     def prepare_data(self):
         DATA = pd.read_csv(f'{self.data_dir}/liver_processed.csv')
+        self.scaler = joblib.load(f'{self.data_dir}/scaler')
+        self.real_cols = np.load(f'{self.data_dir}/liver_processed_conts.npy', allow_pickle=True)
+
+
+        self.x_cols = np.load(f'{self.data_dir}/x_cols.npy', allow_pickle=True)
+        self.o_cols = np.load(f'{self.data_dir}/o_cols.npy', allow_pickle=True)
 
         #liver_train = pd.read_csv(f'{self.data_dir}/liver_processed_train.csv')
         #liver_test = pd.read_csv(f'{self.data_dir}/liver_processed_test.csv')
@@ -166,7 +172,7 @@ class UNOS2UKRegDataModule(OrganDataModule):
         if self.control:
             #liver_train = liver_train[(not liver_train.RECEIVED_TX)]
             #liver_test = liver_test[(not liver_test.RECEIVED_TX)]
-
+            self.o_cols=[]
             DATA = DATA[DATA.RECEIVED_TX == False]
         else:
             #liver_train = liver_train[liver_train.RECEIVED_TX]
@@ -176,12 +182,7 @@ class UNOS2UKRegDataModule(OrganDataModule):
         self.DATA = DATA
         liver_train, liver_test = train_test_split(DATA, test_size=.05)
 
-        self.scaler = joblib.load(f'{self.data_dir}/scaler')
-        self.real_cols = np.load(f'{self.data_dir}/liver_processed_conts.npy', allow_pickle=True)
-
-
-        self.x_cols = np.load(f'{self.data_dir}/x_cols.npy', allow_pickle=True)
-        self.o_cols = np.load(f'{self.data_dir}/o_cols.npy', allow_pickle=True)
+        
 
         self.mean = self.scaler.mean_[-1]
         self.std = self.scaler.scale_[-1]

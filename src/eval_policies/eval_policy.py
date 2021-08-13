@@ -42,7 +42,7 @@ def main(k, wl, od, pc, data, location, wandb_project):
         project_cm = 'organsync-cm-u2u'
         project_tb = 'organsync-tb-u2u'
         data_dir = '../data/processed_UNOS2UKReg_no_split'
-        dm = UNOS2UKRegDataModule(data_dir, batch_size=batch_size)
+        dm = UNOS2UKRegDataModule(location, batch_size=batch_size)
     else:
         project = 'organsync-net-ukreg'
         project_vae = 'organsync-organite-pnet-ukreg'
@@ -122,8 +122,16 @@ def main(k, wl, od, pc, data, location, wandb_project):
 
     stats_os = sim_organsync.simulate(organsync)
 
-    wandb.run.summary['lifeyears'] = stats_os.population_life_years
-    wandb.run.summary['deaths'] = stats_os.deaths
+    sim_organite = Sim(**sim_params)
+    organite = OrganITE(
+        name='O-ITE', 
+        initial_waitlist=[p.id for p in sim_organite.waitlist], 
+        dm=dm, inference_ITE=inference_oite, inference_VAE=inference_oite_vae)
+
+    stats_oite = sim_organite.simulate(organite)
+
+    wandb.run.summary['lifeyears'] = stats_os.population_life_years - stats_oite.population_life_years
+    wandb.run.summary['deaths'] = stats_os.deaths - stats_oite.deaths
     wandb.run.summary['first_empty_day'] = stats_os.first_empty_day
 
 

@@ -244,8 +244,7 @@ class MaxPolicy(Policy):
 
     def remove_x(self, x: list):
         for patient in x:
-            self.waitlist = np.delete(self.waitlist, np.where(np.array([p.id for p in self.waitlist]) == patient)[0])
-    
+            self.waitlist = np.array([p for p in self.waitlist if p.id not in x])
     
     @abstractclassmethod
     def _calculate_scores(self, x_covariates: list, o_covariates: list) -> float:
@@ -371,7 +370,18 @@ class OrganITE(MaxPolicy):
 
         return types
 
+class OrganSyncMax(MaxPolicy):
+    def __init__(self, name, initial_waitlist, dm, inference_0, inference_1):
+        super().__init__(name, initial_waitlist, dm)
 
+        self.inference_0 = inference_0
+        self.inference_1 = inference_1
+    
+    def _calculate_scores(self, x_covariates, o_covariates) -> float:
+        y_1 = np.array([self.inference_1(np.array([patient]), o_covariates, SC=True) for patient in x_covariates])
+        y_0 = np.array([self.inference_1(np.array([patient]), np.empty((1, 0)), SC=True) for patient in x_covariates])
+
+        return y_1 - y_0
 
 @dataclass(order=True)
 class PrioritizedPatient:
