@@ -47,8 +47,8 @@ Please cite our paper and/or code as follows:
 ```tex
 
 @InProceedings{organsync,
-  title = 	 {Learning Queueing Policies for Organ Transplantation Allocation using Interpretable Counterfactual Survival Analysis},
-  author =       {Berrevoets, Jeroen and Alaa, Ahmed and Qian, Zhaozhi and Jordon, James and Gimson, Alexander E.S. and Van Der Schaar, Mihaela},
+  title = 	 {{Learning Queueing Policies for Organ Transplantation Allocation using Interpretable Counterfactual Survival Analysis}},
+  author =       {Berrevoets, Jeroen and Alaa, Ahmed M. and Qian, Zhaozhi and Jordon, James and Gimson, Alexander E.S. and van der Schaar, Mihaela},
   booktitle = 	 {Proceedings of the 38th International Conference on Machine Learning},
   pages = 	 {792--802},
   year = 	 {2021},
