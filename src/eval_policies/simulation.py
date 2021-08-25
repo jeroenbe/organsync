@@ -184,6 +184,7 @@ class Sim():
         X_tmp = torch.Tensor(self.DATA[self.dm.x_cols].to_numpy())      # Add time to live (ttl) column
         self.DATA.loc[:,'ttl'] = self.inference_0(X_tmp)[0].numpy()     # to DATA using inference_0
 
+        self.log_df = pd.DataFrame(columns=['day', 'patient_id', 'organ_id'])
 
         self._setup()
 
@@ -202,23 +203,31 @@ class Sim():
         # RESET STATS
         self.stats = Stats()
 
-    def simulate(self, policy) -> Stats:
+    def simulate(self, policy, log=False) -> Stats:
         # while not stop_critierum
         #   self.iterate(policy)
         have_empty = False
         for day in tqdm(range(self.days)):
-            self.iterate(policy, day)
+            self.iterate(policy, day, log=log)
             if not have_empty and day > 0 and len(self.stats.patients_transplanted[f'{day-1}']) < len(self.stats.organs_transplanted[f'{day-1}']):
                 self.stats.first_empty_day = day-1
                 have_empty = True
 
-        return self.stats
+        return self.stats, self.log_df
 
 
-    def iterate(self, policy, _day):
-        
+    def iterate(self, policy, _day, log=False):
+        log_dict = []                                                   # init log_dict -> each day a new log is added
+
         dead_patients = self._remove_dead_patients(policy)              # remove dead patients from waitlist (also in policy)
         amount_died = len(dead_patients)
+
+        if log:
+            log_dict.extend([{
+                'patient_id': dead_patient, 
+                'organ_id': None,
+                'day': _day} for dead_patient in dead_patients])        # add dead patients with organ None to log_dict
+            
 
         patients = self._sample_patients()                              # sample patient(s)
         organs = self._sample_organs()                                  # sample organ(s)
@@ -233,6 +242,12 @@ class Sim():
         patients_cov = self.patients.loc[                               # sample patient covariates for transplanted indices
             transplant_patients].to_numpy() 
         
+        if log:                                                         # add transplantation to log_dict
+            log_dict.extend([{
+                'patient_id': transplant_patients[r],
+                'organ_id': organs[r],
+                'day': _day
+            } for r in range(len(transplant_patients))])
         
         catted = np.append(patients_cov, organs_cov, axis=1)            # calculate time to live (ttl) with organ using inference_1
         ttl = np.array([self.inference_1(x)[0] for x in catted])
@@ -250,6 +265,10 @@ class Sim():
         self.stats.patients_died[f'{_day}'] = dead_patients
         self.stats.patients_transplanted[f'{_day}'] = transplant_patients
         self.stats.organs_transplanted[f'{_day}'] = organs
+
+        if log:                                                         # add log_dict to log_df (later to be returned after simulation ends)
+            for log_item in log_dict:
+                self.log_df = self.log_df.append(log_item, ignore_index=True)
 
 
         self._age_patients(days=30)

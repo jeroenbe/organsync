@@ -192,7 +192,7 @@ class OrganITE_Network_VAE(pl.LightningModule):
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
 
-        self.z_dim = 2
+        self.z_dim = 4
 
         self.lr = lr
         self.gamma = gamma
