@@ -1,4 +1,4 @@
-# Learning Queueing Policies for Organ Transplantation Allocation using _Interpretable_ Counterfactual Survival Analysis [[ICML 2021]](http://proceedings.mlr.press/v139/berrevoets21a/berrevoets21a.pdf)
+# Learning Queueing Policies for Organ Transplantation Allocation using _Interpretable_ Counterfactual Survival Analysis  </br><sub><sub>J. Berrevoets, A. M. Alaa, Z. Qian, J. Jordon, A. E. S. Gimson, M. van der Schaar [[ICML 2021]](http://proceedings.mlr.press/v139/berrevoets21a/berrevoets21a.pdf)</sub></sub>
 
 In this repository we provide code for our ICML21 paper introducing OrganSync, a novel organ-to-patient allocation system. Note that this code is used for research purposes and is __not intented for use in practice__.
 
@@ -47,8 +47,8 @@ Please cite our paper and/or code as follows:
 ```tex
 
 @InProceedings{organsync,
-  title = 	 {Learning Queueing Policies for Organ Transplantation Allocation using Interpretable Counterfactual Survival Analysis},
-  author =       {Berrevoets, Jeroen and Alaa, Ahmed and Qian, Zhaozhi and Jordon, James and Gimson, Alexander E.S. and Van Der Schaar, Mihaela},
+  title = 	 {{Learning Queueing Policies for Organ Transplantation Allocation using Interpretable Counterfactual Survival Analysis}},
+  author =       {Berrevoets, Jeroen and Alaa, Ahmed M. and Qian, Zhaozhi and Jordon, James and Gimson, Alexander E.S. and van der Schaar, Mihaela},
   booktitle = 	 {Proceedings of the 38th International Conference on Machine Learning},
   pages = 	 {792--802},
   year = 	 {2021},
