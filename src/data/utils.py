@@ -123,3 +123,21 @@ def get_data_tuples(location):
     del_test = liver_test[['PSTATUS']] - 1
 
     return X_train, O_train, Y_train, del_train, X_test, O_test, Y_test, del_test
+
+
+def data_from_id_table(id_table, sim):
+    covariate_table = pd.DataFrame(
+        columns=np.append(sim.patients.columns.values, [*sim.organs.columns.values, 'DAY']))
+    for index, row in id_table.iterrows():
+        patient_row = sim.patients.loc[row.patient_id]
+        if row.organ_id > 0:
+            organ_row = sim.organs.loc[row.organ_id]
+        day = row.day
+
+        total_row = patient_row.append(organ_row) if row.organ_id > 0 else patient_row
+        total_row['DAY'] = day
+
+
+        covariate_table = covariate_table.append(total_row, ignore_index=True)
+
+    return covariate_table

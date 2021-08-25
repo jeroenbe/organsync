@@ -225,7 +225,7 @@ class Sim():
         if log:
             log_dict.extend([{
                 'patient_id': dead_patient, 
-                'organ_id': None,
+                'organ_id': -1,
                 'day': _day} for dead_patient in dead_patients])        # add dead patients with organ None to log_dict
             
 
