@@ -2,9 +2,9 @@
 .vscode
 __pycache__
 __init__.py
-/wandb
-/data
-/notebooks/Untitled.ipynb
+wandb
+data
+notebooks/Untitled.ipynb
 *.ckpt
 lightning_logs
 data_exploration-checkpoint.ipynb

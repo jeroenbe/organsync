@@ -1,0 +1,12 @@
+matplotlib
+numpy
+pandas
+torch
+pytorch_lightning
+wandb
+joblib
+cvxpy
+sklearn
+networkx
+lifelines
+jupyter
