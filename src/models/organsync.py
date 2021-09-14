@@ -22,9 +22,9 @@ from src.data.data_module import UNOSDataModule, UKRegDataModule, UNOS2UKRegData
 class OrganSync_Network(pl.LightningModule):
     # INFO: In OrganSync, this network provides
     #   the non-linear representation u. In the
-    #   representation space, U, we search for
+    #   representation space, U, we search for 
     #   synthetic controls used for ITE predictions
-    #   and survival analysis. For this, refer
+    #   and survival analysis. For this, refer 
     #   to synthetic_control(x, o, lambd)
 
     def __init__(
@@ -55,7 +55,7 @@ class OrganSync_Network(pl.LightningModule):
         activation = activation_functions[activation_type]
 
         hidden_layers = np.array([(
-            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.Linear(self.hidden_dim, self.hidden_dim), 
             activation(),
             nn.Dropout(p=dropout_prob)) for _ in range(num_hidden_layers)]).flatten()
 
@@ -94,8 +94,8 @@ class OrganSync_Network(pl.LightningModule):
         scheduler = optim.lr_scheduler.ExponentialLR(optimiser, self.gamma)
 
         return [optimiser], [scheduler]
-
-
+    
+    
     def shared_step(self, batch):
         x, o, y, _ = batch
 
@@ -105,7 +105,7 @@ class OrganSync_Network(pl.LightningModule):
         loss = self.loss(y_, y)
 
         return loss
-
+    
     def training_step(self, batch, ix):
         loss = self.shared_step(batch)
 
@@ -160,13 +160,13 @@ class OrganSync_Network(pl.LightningModule):
         catted = torch.cat((X, O), dim=1).double()
         if torch.cuda.is_available():
             catted = catted.cuda()
-
+        
         U = self.representation(catted).detach().cpu().numpy()
 
         # BUILD u FROM TEST
         new_pairs = torch.cat((x, o), dim=1).double()
         u = self.representation(new_pairs).detach().cpu().numpy()
-
+        
         # CONVEX OPT
         def convex_opt(u):
             a = cp.Variable(U.shape[0])
@@ -176,12 +176,12 @@ class OrganSync_Network(pl.LightningModule):
             prob = cp.Problem(objective, constraints)
 
             prob.solve(warm_start=True, solver=solver)
-
+            
             return a.value, a.value @ U, (a.value @ Y.numpy()).item()
 
         result = Parallel(n_jobs=int(joblib.cpu_count()))(delayed(convex_opt)(u_) for u_ in u)
         result = np.array(result, dtype=object)
-
+        
         # INFER
         a_s = result[:,0]
         u_s = result[:,1]
@@ -248,10 +248,10 @@ def train(
         # CONSTRUCT MODEL
         input_dim = dm.size(1)
         model = OrganSync_Network(
-            input_dim=input_dim,
+            input_dim=input_dim, 
             hidden_dim=hidden_dim,
             num_hidden_layers=num_hidden_layers,
-            output_dim=output_dim,
+            output_dim=output_dim, 
             lr=lr, gamma=gamma, lambd=lambd, weight_decay=weight_decay,
             activation_type=activation_type,
             dropout_prob=dropout_prob).double()
@@ -271,7 +271,7 @@ def train(
         trainer.test(datamodule=dm)
 
         wandb.run.join()
-
+    
     wandb.finish()
 
 if __name__ == "__main__":
