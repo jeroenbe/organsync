@@ -1,0 +1,66 @@
+program: src.models.organsync
+command:
+  - ${env}
+  - ${interpreter}
+  - "-m"
+  - ${program}
+  - ${args}
+method: bayes
+metric:
+  goal: minimize
+  name: val_loss
+parameters:
+  lr:
+    max: 0.05
+    min: 0.001
+    distribution: uniform
+  gamma:
+    max: 0.999
+    min: 0.7
+    distribution: uniform
+  weight_decay:
+    max: 0.01
+    min: 0.0001
+    distribution: uniform
+  num_hidden_layers:
+    values:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      - 10
+  output_dim:
+    min: 2
+    max: 32
+    distribution: int_uniform
+  hidden_dim:
+    min: 80
+    max: 120
+    distribution: int_uniform
+  dropout_prob:
+    min: 0
+    max: 0.7
+    distribution: uniform
+  epochs:
+    values:
+      - 50
+      - 70
+      - 90
+      - 110
+  batch_size:
+    values:
+      - 128
+      - 256
+      - 512
+      - 1024
+  activation_type:
+    distribution: categorical
+    values:
+      - relu
+      - leaky_relu
