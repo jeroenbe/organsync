@@ -1,0 +1,15 @@
+cvxpy
+dask
+joblib
+jupyter
+lifelines
+loguru
+matplotlib
+networkx
+numpy
+pandas
+pytorch_lightning
+sklearn
+torch
+torchmetrics
+wandb
