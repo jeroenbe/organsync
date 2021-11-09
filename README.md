@@ -46,7 +46,7 @@ Training a new model (e.g. `src/organsync/models/organsync_network.py`) is done 
 ```bash
 python -m experiments.models.organsync
 ```
-(Please run python -m experiments.models.organsync --help to see options). When training is done, the model is automatically uploaded to W&B for use later in the experiments.
+(Please run python -m experiments.models.organsync --help to see options). When training is done, the model is automatically uploaded to W&B for use later in the experiments.*
 
 ## Citing
 Please cite our paper and/or code as follows:
@@ -67,3 +67,5 @@ Please cite our paper and/or code as follows:
   url = 	 {http://proceedings.mlr.press/v139/berrevoets21a.html},
 }
 ```
+
+<sub>* Note that we retrain the models used in TransplantBenefit to give a fair comparison to the other benchmarks, as well as compare on the UNOS data.</sub>
