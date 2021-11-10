@@ -3,8 +3,8 @@ import numpy as np
 
 class MELD:
     def score(
-        self, serum_bilirubin: np.ndarray, inr: np.ndarray, serum_creatinine: np.ndarray
-    ) -> np.ndarray:
+        self, serum_bilirubin: float, inr: float, serum_creatinine: float
+    ) -> float:
         # DEFINITION OF (standard) MELD: https://en.wikipedia.org/wiki/Model_for_End-Stage_Liver_Disease#Determination
         return (
             3.79 * np.log(serum_bilirubin)  # mg/dL
@@ -17,12 +17,35 @@ class MELD:
 class MELD_na:
     def score(
         self,
-        serum_bilirubin: np.ndarray,
-        inr: np.ndarray,
-        serum_creatinine: np.ndarray,
-        serum_sodium: np.ndarray,
-    ) -> np.ndarray:
+        serum_bilirubin: float,
+        inr: float,
+        serum_creatinine: float,
+        serum_sodium: float,
+    ) -> float:
         # MELD-na: MELD + 1.59*(135-SODIUM(mmol/l)) (https://github.com/kartoun/meld-plus/raw/master/MELD_Plus_Calculator.xlsx)
-        return MELD().score(serum_bilirubin, inr, serum_creatinine) + 1.59 * (
-            135 - serum_sodium  # mmol / L
+        meld_score = MELD().score(serum_bilirubin, inr, serum_creatinine)
+
+        return (
+            meld_score
+            - serum_sodium
+            - (0.025 * meld_score * (140 - serum_sodium))
+            + 140
+        )
+
+
+class UKELD:
+    def score(
+        self,
+        serum_bilirubin: float,
+        serum_creatinine: float,
+        inr: float,
+        serum_sodium: float,
+    ) -> float:
+
+        return (
+            (5.395 * np.log(inr))
+            + (1.485 * np.log(serum_creatinine))
+            + (3.13 * np.log(serum_bilirubin))
+            - (81.565 * np.log(serum_sodium))
+            + 435
         )

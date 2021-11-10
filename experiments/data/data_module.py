@@ -149,6 +149,7 @@ class UKRegDataModule(OrganDataModule):
         self.o_cols = np.load(f"{self.data_dir}/o_cols_m2.npy", allow_pickle=True)
         self.real_cols = np.load(f"{self.data_dir}/impute.npy", allow_pickle=True)
         self.real_cols = np.array([*self.real_cols, "Y"])
+
         self.scaler = joblib.load(f"{self.data_dir}/scaler")
 
         if self.control:
