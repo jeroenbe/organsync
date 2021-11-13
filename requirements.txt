@@ -1,7 +1,6 @@
 cvxpy
 joblib
 lifelines
-loguru
 numpy
 pandas
 pytorch_lightning
