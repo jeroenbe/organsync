@@ -3,10 +3,10 @@ bandit
 black
 flake8
 jupyter
+lifelines
 matplotlib
 networkx
 networkx
 pre-commit
 pytest
-
 wandb
