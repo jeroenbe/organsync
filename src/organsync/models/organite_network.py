@@ -100,6 +100,9 @@ class OrganITE_Network(pl.LightningModule):
 
         self.cluster.fit(O)
 
+        self.x_cols = self.trainer.datamodule.x_cols
+        self.o_cols = self.trainer.datamodule.o_cols
+
     def on_save_checkpoint(self, checkpoint: dict) -> None:
         checkpoint["cluster"] = self.cluster
 
