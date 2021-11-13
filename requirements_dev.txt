@@ -1,8 +1,12 @@
 -r ./requirements.txt
-
 bandit
 black
 flake8
+jupyter
+matplotlib
+networkx
 networkx
 pre-commit
 pytest
+
+wandb
