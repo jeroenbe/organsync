@@ -3,7 +3,6 @@ bandit
 black
 flake8
 jupyter
-lifelines
 matplotlib
 networkx
 networkx
