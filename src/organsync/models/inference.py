@@ -1,4 +1,4 @@
-from abc import ABC, abstractclassmethod
+from abc import ABC, abstractmethod
 from typing import Any, Optional, Tuple
 
 import numpy as np
@@ -21,7 +21,7 @@ class Inference(ABC):
     def __call__(self, x: torch.Tensor, *args: Any, **kwargs: Any) -> Any:
         return self.infer(x, *args, **kwargs)
 
-    @abstractclassmethod
+    @abstractmethod
     def infer(self, x: torch.Tensor, *args: Any, **kwargs: Any) -> Any:
         ...
 
@@ -39,7 +39,7 @@ class Inference_OrganSync(Inference):
                 o = torch.Tensor(o).double()
 
             if SC and o is not None:
-                a, _, y, _, ixs = self.model.synthetic_control(x, o, n=1500)
+                a, _, y, _, ixs = self.model.synthetic_control(x, o)
             else:
                 a, ixs = None, None
                 if o is not None:
@@ -59,14 +59,13 @@ class Inference_OrganITE(Inference):
         #   at training time
         with torch.no_grad():
             if o is None:
-                o = np.full(
-                    (len(x), len(self.model.trainer.datamodule.o_cols)), replace_organ
-                )
+                o = np.full((len(x), len(self.model.o_cols)), replace_organ)
             x = torch.Tensor(x).double()
             o = torch.Tensor(o).double()
             catted = torch.cat((x, o), dim=1)
 
             _, y = self.model(catted)
+            y = y * self.std + self.mean
 
             return y
 

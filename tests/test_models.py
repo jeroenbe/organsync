@@ -10,7 +10,7 @@ from organsync.models.transplantbenefit import UKELDModel
 
 def test_meld_sanity() -> None:
     assert MELD().score(0.7, 1.0, 0.7) == 1.6648227489785334
-    assert MELD_na().score(0.7, 1.0, 0.7, 100) == 57.31482274897854
+    assert MELD_na().score(0.7, 1.0, 0.7, 100) == 40.0
 
 
 def test_confidentmatch_sanity() -> None:

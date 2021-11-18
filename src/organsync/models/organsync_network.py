@@ -50,6 +50,7 @@ class OrganSync_Network(pl.LightningModule):
         num_hidden_layers: int = 1,
         activation_type: str = "relu",
         dropout_prob: float = 0.0,
+        control_size: int = 1500,
     ) -> None:
 
         super().__init__()
@@ -62,6 +63,8 @@ class OrganSync_Network(pl.LightningModule):
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
+
+        self.control_size = control_size
 
         activation_functions = {"relu": nn.ReLU, "leaky_relu": nn.LeakyReLU}
         activation = activation_functions[activation_type]
@@ -85,9 +88,9 @@ class OrganSync_Network(pl.LightningModule):
             *hidden_layers,
             nn.Linear(self.hidden_dim, self.output_dim),
             activation(),
-        )
+        ).double()
 
-        self.beta = nn.Linear(self.output_dim, 1)  # This predicts Y
+        self.beta = nn.Linear(self.output_dim, 1).double()  # This predicts Y
 
         self.loss = MeanSquaredError()
         self.save_hyperparameters()
@@ -103,6 +106,21 @@ class OrganSync_Network(pl.LightningModule):
 
     # ~~~~~~~~~~~
     # LIT METHODS
+
+    def on_fit_start(self, stage: Any = None) -> None:
+        self.rescale_mean, self.rescale_std = (
+            self.trainer.datamodule.mean,
+            self.trainer.datamodule.std,
+        )
+        indices = torch.randint(
+            0, len(self.trainer.datamodule._train_processed), (self.control_size,)
+        )
+        X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset[indices]
+        catted = torch.cat((X, O), dim=1).double()
+        if torch.cuda.is_available():
+            catted = catted.cuda()
+
+        self.synth_control_data = (catted, Y, indices)
 
     def configure_optimizers(self) -> tuple:
         optimiser = optim.Adam(
@@ -157,7 +175,7 @@ class OrganSync_Network(pl.LightningModule):
         synth_rmse = torch.sqrt(self.loss(synth_y, y))
 
         # SCALE
-        mean, std = self.trainer.datamodule.mean, self.trainer.datamodule.std
+        mean, std = self.rescale_mean, self.rescale_std
         y = y * std + mean
         y_ = y_ * std + mean
 
@@ -175,16 +193,11 @@ class OrganSync_Network(pl.LightningModule):
         return loss, synth_loss, rmse, synth_rmse
 
     def synthetic_control(
-        self, x: torch.Tensor, o: torch.Tensor, n: int = 1000, solver: Any = cp.SCS
+        self, x: torch.Tensor, o: torch.Tensor, solver: Any = cp.SCS
     ) -> tuple:  # returns a, u_ and y_
         # BUILD U FROM TRAINING
-        indices = torch.randint(0, len(self.trainer.datamodule._train_processed), (n,))
-        X, O, Y, _ = self.trainer.datamodule.train_dataloader().dataset.dataset[indices]
-        catted = torch.cat((X, O), dim=1).double()
-        if torch.cuda.is_available():
-            catted = catted.cuda()
-
-        U = self.representation(catted).detach().cpu().numpy()
+        synth_catted, Y, indices = self.synth_control_data
+        U = self.representation(synth_catted).detach().cpu().numpy()
 
         # BUILD u FROM TEST
         new_pairs = torch.cat((x, o), dim=1).double()
@@ -202,7 +215,7 @@ class OrganSync_Network(pl.LightningModule):
         u_s = result[:, 1]
         synth_y = result[:, 2]
 
-        mean, std = self.trainer.datamodule.mean, self.trainer.datamodule.std
+        mean, std = self.rescale_mean, self.rescale_std
         synth_y_scaled = synth_y * std + mean
 
         return a_s, u_s, synth_y_scaled, synth_y, indices
