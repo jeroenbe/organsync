@@ -1,4 +1,4 @@
-from .base import Organ, Patient, Policy  # noqa: F401
+from .base import Organ, Patient  # noqa: F401
 from .policy import (  # noqa: F401
     FIFO,
     MELD,
@@ -8,5 +8,6 @@ from .policy import (  # noqa: F401
     OrganITE,
     OrganSync,
     OrganSyncMax,
+    Policy,
     TransplantBenefit,
 )

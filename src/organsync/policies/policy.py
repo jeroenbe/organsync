@@ -1,5 +1,5 @@
 import heapq
-from abc import abstractclassmethod
+from abc import ABC, abstractclassmethod
 from collections import Counter
 from dataclasses import dataclass, field
 from operator import attrgetter, itemgetter
@@ -13,13 +13,67 @@ from sklearn.cluster import KMeans
 
 from organsync.data.data_module import OrganDataModule
 from organsync.models.inference import Inference
-from organsync.policies import Organ, Patient, Policy
+from organsync.policies import Organ, Patient
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # POLICY DEFINITIONS
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # LivSim Policies (MELD and MELD-na)
+
+
+class Policy(ABC):
+    def __init__(
+        self,
+        name: str,  # policy name, reported in wandb
+        initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
+        dm: OrganDataModule,  # datamodule containing all information
+        #   of the transplant system
+    ) -> None:
+
+        self.name = name
+        self.waitlist = initial_waitlist
+        self.dm = dm
+        self.test = dm._test_processed  # always perform on test set
+
+    @abstractclassmethod
+    def get_xs(self, organs: np.ndarray) -> np.ndarray:
+        # Given the internal state of the transplant system
+        # waitlist, and a new organ, a patient is suggested.
+        # For each patient the ID is used/returned; the policy may
+        # use dm for full covariates. When the patient is presented
+        # they should be removed from the waitlist.
+        #
+        # params -
+        # :organ: int - organ ID, for reference to dm.ID (note,
+        #   dm.ID covers patient-organ pair)
+        ...
+
+    @abstractclassmethod
+    def add_x(self, x: np.ndarray) -> None:
+        # Whenever a patient enters the transplant system
+        # add_x is called. It is the policies task to maintain
+        # system state.
+        #
+        # params -
+        # :x: int - patient ID, for reference to dm.ID (note,
+        #   dm.ID covers patient-organ pair)
+        ...
+
+    @abstractclassmethod
+    def remove_x(self, x: np.ndarray) -> None:
+        # Removes x from the waitlist; happens when they
+        # died prematurely. It is the Sim's responsibility
+        # to define when a patients dies. As long as the patient
+        # remains on the waitlist, they are assumed to be alive.
+        #
+        # params -
+        # :x: int - patient ID, for reference to dm.ID (note,
+        #   dm.ID covers patient-organ pair)
+        ...
+
+    def waitlist_ids(self) -> np.ndarray:
+        return np.array([p.id for p in self.waitlist])
 
 
 class MELD(Policy):
@@ -32,6 +86,7 @@ class MELD(Policy):
         super().__init__(name, initial_waitlist, dm)
 
         self._setup()
+        self.waitlist = []
 
     def _get_x(self, organ: str) -> int:
         if len(self.waitlist) == 0:
