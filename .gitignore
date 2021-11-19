@@ -16,3 +16,10 @@ dist
 *.npy
 generated
 datasets
+/src/data
+/notebooks
+/experiments/notebooks/wandb
+/src/LivSim_plusplus
+/data
+/LivSim_results
+LivSim_results
