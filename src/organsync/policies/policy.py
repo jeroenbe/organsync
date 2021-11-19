@@ -86,7 +86,6 @@ class MELD(Policy):
         super().__init__(name, initial_waitlist, dm)
 
         self._setup()
-        self.waitlist = []
 
     def _get_x(self, organ: str) -> int:
         if len(self.waitlist) == 0:
