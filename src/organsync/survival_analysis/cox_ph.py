@@ -10,7 +10,7 @@ from lifelines import CoxPHFitter
 
 class CoxPH:
     def __init__(self) -> None:
-        self.model = CoxPHFitter()
+        self.model = CoxPHFitter(penalizer=0.01)
 
     def fit(self, X: pd.DataFrame, *args: Any, **kwargs: Any) -> "CoxPH":
         if len(args) < 2:
@@ -26,7 +26,9 @@ class CoxPH:
         df = pd.concat([X, T, Y], axis=1)
         df.columns = [x for x in X.columns] + ["time", "label"]
 
-        self.model.fit(df, duration_col="time", event_col="label", **kwargs)
+        self.model.fit(
+            df, duration_col="time", event_col="label", step_size=0.2, **kwargs
+        )
 
         return self
 
@@ -48,4 +50,4 @@ class CoxPH:
             else:
                 preds_[:, t] = 1.0 - surv[:, tmp_time[0]]
 
-        return preds_
+        return pd.DataFrame(preds_, columns=time_horizons)
