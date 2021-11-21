@@ -116,4 +116,4 @@ class XGBoostRiskEstimation:
             nearest = self._find_nearest(time_bins, eval_time)
             preds_[:, t] = np.asarray(1 - surv[nearest])
 
-        return preds_
+        return pd.DataFrame(preds_)
