@@ -7,3 +7,4 @@ pytorch_lightning
 sklearn
 torch
 torchmetrics
+xgbse

@@ -7,5 +7,6 @@ matplotlib
 networkx
 networkx
 pre-commit
+pycox
 pytest
 wandb
