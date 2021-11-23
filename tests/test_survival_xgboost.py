@@ -1,10 +1,12 @@
 # third party
+import pytest
 from pycox.datasets import metabric
 from sklearn.model_selection import train_test_split
 
 from organsync.survival_analysis.xgboost import XGBoostRiskEstimation
 
 
+@pytest.mark.slow
 def test_survival_xgboost_plugin_fit_predict() -> None:
     test_plugin = XGBoostRiskEstimation()
 
