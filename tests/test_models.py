@@ -5,7 +5,6 @@ from organsync.models.confidentmatch import ConfidentMatch
 from organsync.models.linear import MELD, MELD_na
 from organsync.models.organite_network import OrganITE_Network
 from organsync.models.organsync_network import OrganSync_Network
-from organsync.models.transplantbenefit import UKELDModel
 
 
 def test_meld_sanity() -> None:
@@ -21,17 +20,6 @@ def test_confidentmatch_sanity() -> None:
     assert mock.x_col == ["x"]
     assert mock.o_col == ["o"]
     assert mock.y_col == "y"
-
-
-def test_ukeld_sanity() -> None:
-    dummy = pd.DataFrame(np.zeros((100, 3)), columns=["x", "o", "y"])
-    mock = UKELDModel(dummy, cols=["x", "o", "y"], duration_col="o", censor_col="y")
-
-    assert mock.cols == ["x", "o", "y"]
-    assert mock.penalizer == 0.1
-    assert mock.censor_col == "y"
-    assert mock.duration_col == "o"
-    assert mock.cph is not None
 
 
 def test_organite_sanity() -> None:

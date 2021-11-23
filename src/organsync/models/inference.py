@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 import numpy as np
 import torch
@@ -7,7 +7,6 @@ import torch
 from organsync.models.confidentmatch import ConfidentMatch
 from organsync.models.organite_network import OrganITE_Network, OrganITE_Network_VAE
 from organsync.models.organsync_network import OrganSync_Network
-from organsync.models.transplantbenefit import UKELDModel
 
 
 class Inference(ABC):
@@ -94,25 +93,3 @@ class Inference_ConfidentMatch(Inference):
         #   using X AND O together.
         X = np.append(x, o, axis=1)
         return self.model.estimate(X)
-
-
-class Inference_TransplantBenefit(Inference):
-    def __init__(
-        self, model: Tuple[UKELDModel, UKELDModel], mean: float, std: float
-    ) -> None:
-        assert isinstance(model, tuple), "Expecting two UKELDModel models in input"
-        assert isinstance(model[0], UKELDModel), "Expecting first model UKELDModel"
-        assert isinstance(
-            model[1], UKELDModel
-        ), "Expecting second model UKELDModel in input"
-
-        super().__init__(model, mean, std)
-        self.model_0 = model[0]
-        self.model_1 = model[1]
-
-    def infer(self, x: torch.Tensor, o: torch.Tensor) -> Any:  # type: ignore
-        X = np.append(x, o, axis=1)
-        X_0 = np.append(x, np.zeros(np.array(o).shape), axis=1)
-        Y_1 = self.model_1.estimate(X)
-        Y_0 = self.model_0.estimate(X_0)
-        return Y_1 - Y_0

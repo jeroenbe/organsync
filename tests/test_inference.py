@@ -8,11 +8,9 @@ from organsync.models.inference import (
     Inference_OrganITE,
     Inference_OrganITE_VAE,
     Inference_OrganSync,
-    Inference_TransplantBenefit,
 )
 from organsync.models.organite_network import OrganITE_Network, OrganITE_Network_VAE
 from organsync.models.organsync_network import OrganSync_Network
-from organsync.models.transplantbenefit import UKELDModel
 
 
 def test_organsync_inference() -> None:
@@ -36,7 +34,7 @@ def test_organsync_inference() -> None:
     assert mock.std == 2
 
     with pytest.raises(AssertionError):
-        Inference_OrganSync("fail", 1, 2)  # type: ignore
+        Inference_OrganSync("fail", 1, 2)
 
 
 def test_organite_inference() -> None:
@@ -62,7 +60,7 @@ def test_organite_inference() -> None:
     assert mock.std == 2
 
     with pytest.raises(AssertionError):
-        Inference_OrganITE("fail", 1, 2)  # type: ignore
+        Inference_OrganITE("fail", 1, 2)
 
 
 def test_organite_vae_inference() -> None:
@@ -95,18 +93,4 @@ def test_confident_match_inference() -> None:
     assert mock.std == 2
 
     with pytest.raises(AssertionError):
-        Inference_ConfidentMatch("fail", 1, 2)  # type: ignore
-
-
-def test_transplantbenefit_inference() -> None:
-    dummy = pd.DataFrame(np.zeros((100, 3)), columns=["x", "o", "y"])
-    model = UKELDModel(dummy, cols=["x", "o", "y"], duration_col="o", censor_col="y")
-
-    mock = Inference_TransplantBenefit((model, model), 1, 2)
-
-    assert isinstance(mock.model, tuple)
-    assert mock.mean == 1
-    assert mock.std == 2
-
-    with pytest.raises(AssertionError):
-        Inference_TransplantBenefit("fail", 1, 2)  # type: ignore
+        Inference_ConfidentMatch("fail", 1, 2)
