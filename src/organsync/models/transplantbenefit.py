@@ -1,43 +1,167 @@
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
-from joblib import dump, load
-from lifelines import CoxPHFitter
+
+import organsync.models.third_party.tbs.tbs as tbs_impl
+
+module_path = Path(__file__).parent
+path = module_path / Path("third_party/tbs/")
 
 
-class UKELDModel:
-    def __init__(
-        self,
-        data: pd.DataFrame,
-        cols: list,
-        duration_col: str,
-        censor_col: str,
-        penalizer: float = 0.1,
-    ) -> None:
-        self.data = data
-        self.cols = cols
-        self.duration_col = duration_col
-        self.censor_col = censor_col
-        self.penalizer = penalizer
+def _parse_reg_year(year: int) -> int:
+    if year <= 2007:
+        return 0
+    elif year == 2008:
+        return 1
+    elif year == 2009:
+        return 2
+    elif year == 2010:
+        return 3
+    elif year == 2011:
+        return 4
+    else:
+        return 5
 
-        self.cph = CoxPHFitter(penalizer=self.penalizer)
 
-    def load_cph(self, location: Path) -> None:
-        self.cph = load(location)
+def _parse_cod(cod: int) -> int:
+    if cod == 10 or cod == 11:
+        return 0
+    elif cod >= 20 and cod <= 29:
+        return 1
+    return 2
 
-    def save_cph(self, location: Path, name: str) -> None:
-        location = Path(location)
-        if not location.exists():
-            location.mkdir()
-        dump(self.cph, location / name)
 
-    def fit(self) -> None:
-        self.cph.fit(
-            self.data.loc[:, [*self.cols, self.duration_col, self.censor_col]],
-            duration_col=self.duration_col,
-            event_col=self.censor_col,
+def _parse_dtype(cod: int) -> int:
+    if cod == 40 or cod == 41 or cod == 49:
+        return 0
+    return 1
+
+
+def _parse_disease_group(disease: int) -> int:
+    if disease in [441, 442, 443, 444, 445, 447]:
+        return 1
+    elif disease in [424]:
+        return 2
+    elif disease in [419]:
+        return 3
+    elif disease in [413, 436]:
+        return 4
+    elif disease in [414]:
+        return 5
+    elif disease in [411]:
+        return 6
+    elif disease in [412, 417]:
+        return 7
+    elif disease in [415, 422, 426, 450, 452, 454, 456, 457, 461, 462, 434]:
+        return 8
+    elif disease in [
+        410,
+        416,
+        418,
+        420,
+        421,
+        423,
+        425,
+        448,
+        451,
+        453,
+        455,
+        460,
+        463,
+        464,
+        466,
+        467,
+        468,
+        469,
+        483,
+        484,
+        485,
+        486,
+        498,
+        474,
+    ]:
+        return 9
+    return 10
+
+
+class TBS:
+    def fit(self, *args: Any, **kwargs: Any) -> "TBS":
+        return self
+
+    def _single_predict(self, data: pd.DataFrame) -> pd.DataFrame:
+        centre_tbs = 0
+        rregistration_tbs = _parse_reg_year(data["regyr"])
+        rinpatient_tbs = int(data["PATIENT_LOCATION"]) - 1
+        rwaiting_time_tbs = data["rwtime"] + 1
+        rage_tbs = data["RAGE"]
+        rgender_tbs = int(data["SEX"] == 2)
+        rdisease_primary_tbs = _parse_disease_group(data["PRIMARY_LIVER_DISEASE"])
+        rdisease_secondary_tbs = 9
+        rdisease_tertiary_tbs = 9
+        previous_tx_tbs = (
+            data["NO_OF_PREVIOUS_LIVER_TX"] if data["NO_OF_PREVIOUS_LIVER_TX"] else 0
+        )
+        rprevious_surgery_tbs = int(data["PREV_ABDOMINAL_SURGERY"])
+        rbilirubin_tbs = data["SERUM_BILIRUBIN"]
+        rinr_tbs = data["INR"]
+        rcreatinine_tbs = data["SERUM_CREATININE"]
+        rrenal_tbs = int(data["RENAL_SUPPORT"] != 3)
+        rsodium_tbs = data["SERUM_SODIUM"]
+        rpotassium_tbs = data["SERUM_POTASSIUM"]
+        ralbumin_tbs = data["SERUM_ALBUMIN"]
+        rencephalopathy_tbs = int(data["ENCEPHALOPATHY_GRADE"] != 0)
+        rascites_tbs = data["CURRENT_ASCITES"]
+        rdiabetes_tbs = int(data["DIABETIC"])
+        dage_tbs = data["DAGE"]
+        dbmi_tbs = data["DBMI"]
+        dcause_tbs = _parse_cod(data["DCOD"])
+        ddiabetes_tbs = int(0)
+        dtype_tbs = data["DGRP"] == 2
+        splittable_tbs = 0
+        bloodgroup_compatible_tbs = 1
+        rmax_afp_tbs = 5
+        rtumour_number_tbs = 0
+        rmax_tumour_size_tbs = 1
+
+        output = tbs_impl.fn_tbs(
+            centre_tbs,
+            rregistration_tbs,
+            rinpatient_tbs,
+            rwaiting_time_tbs,
+            rage_tbs,
+            rgender_tbs,
+            rdisease_primary_tbs,
+            rdisease_secondary_tbs,
+            rdisease_tertiary_tbs,
+            previous_tx_tbs,
+            rprevious_surgery_tbs,
+            rbilirubin_tbs,
+            rinr_tbs,
+            rcreatinine_tbs,
+            rrenal_tbs,
+            rsodium_tbs,
+            rpotassium_tbs,
+            ralbumin_tbs,
+            rencephalopathy_tbs,
+            rascites_tbs,
+            rdiabetes_tbs,
+            rmax_afp_tbs,
+            rtumour_number_tbs,
+            rmax_tumour_size_tbs,
+            dage_tbs,
+            dcause_tbs,
+            dbmi_tbs,
+            ddiabetes_tbs,
+            dtype_tbs,
+            splittable_tbs,
+            bloodgroup_compatible_tbs,
         )
 
-    def estimate(self, x: np.ndarray) -> np.ndarray:
-        return self.cph.predict_expectation(x)
+        return [round(output["tbs"], 1), round(output["m1"], 1), round(output["m2"], 1)]
+
+    def predict(self, data: pd.DataFrame) -> pd.DataFrame:
+        scores = data.apply(lambda row: self._single_predict(row), axis=1)
+        scores = np.vstack(scores)
+        return pd.DataFrame(scores, columns=["score", "m1", "m2"])
