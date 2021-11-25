@@ -1,1 +1,1 @@
-from .simulation import Sim, Sim_Patient, Stats  # noqa: F401
+from .simulation import DatedSim, Sim, Sim_Patient, Stats  # noqa: F401
