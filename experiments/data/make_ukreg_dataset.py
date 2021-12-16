@@ -1,4 +1,3 @@
-from datetime import datetime
 from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
@@ -150,30 +149,7 @@ def prep_ukeld_data(
         lambda disease: _parse_disease_group(disease)
     )
 
-    for k in M2_cols.keys():
-        if M2_cols[k]:
-            O.loc[:, k] = O[k].replace(9, np.nan)
-            O.loc[:, k] = O[k].replace(8, np.nan)
-            O.loc[:, k] = O[k].astype("category")
-
-    O.loc[:, "RCREAT"] = O["RCREAT"].replace([8888, 9999], np.nan)
-    O.loc[:, "RBILIRUBIN"] = O["RBILIRUBIN"].replace([8888, 9999], np.nan)
-    O.loc[:, "RINR"] = O["RINR"].replace([88.8, 99.9], np.nan)
-    O.loc[:, "RSODIUM"] = O["RSODIUM"].replace([888, 999], np.nan)
-    O.loc[:, "RPOTASSIUM"] = O["RPOTASSIUM"].replace([88.8, 99.9], np.nan)
-    O.loc[:, "RALBUMIN"] = O["RALBUMIN"].replace([88, 99], np.nan)
-
-    O.loc[:, "retrieval_date"] = pd.to_datetime(
-        O["retrieval_date"], format="%d%b%y:%H:%M:%S"
-    )
-    dummy_date = datetime(year=1970, month=1, day=1)
-    O.loc[:, "retrieval_date"] = O["retrieval_date"].fillna(dummy_date)
-    O.loc[:, "retrieval_date"] = (O["retrieval_date"] - dummy_date).dt.total_seconds()
-
-    O = O.replace([-np.inf, np.inf], np.nan)
-
     X_drop: List[str] = []
-
     O_drop: list = []
 
     o_cols = pd.get_dummies(O[list(M2_cols_D.keys())]).drop(O_drop, 1).columns.values

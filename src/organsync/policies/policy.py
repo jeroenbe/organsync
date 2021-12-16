@@ -28,13 +28,17 @@ class Policy(ABC):
         name: str,  # policy name, reported in wandb
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information
+        data: str='test',
         #   of the transplant system
     ) -> None:
 
         self.name = name
         self.waitlist = initial_waitlist
         self.dm = dm
-        self.test = dm._test_processed  # always perform on test set
+        if data == 'test':
+            self.test = dm._test_processed  # perform on test set
+        if data == 'all':
+            self.test = dm._all_processed   # perform on all data
 
     @abstractclassmethod
     def get_xs(self, organs: np.ndarray) -> np.ndarray:
@@ -82,8 +86,9 @@ class MELD(Policy):
         name: str,  # policy name, reported in wandb
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information of the transplant system
+        data: str='test',
     ) -> None:
-        super().__init__(name, initial_waitlist, dm)
+        super().__init__(name, initial_waitlist, dm, data)
 
         self._setup()
 
@@ -161,8 +166,9 @@ class MELD_na(MELD):
         name: str,  # policy name, reported in wandb
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information of the transplant system
+        data: str='test',
     ) -> None:
-        super().__init__(name, initial_waitlist, dm)
+        super().__init__(name, initial_waitlist, dm, data)
 
     def _meld(self, patients: np.ndarray) -> np.ndarray:
         # We can simply inherit from MELD as the only part
@@ -186,8 +192,9 @@ class FIFO(Policy):
         name: str,  # policy name, reported in wandb
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information of the transplant system
+        data: str='test',
     ) -> None:
-        super().__init__(name, initial_waitlist, dm)
+        super().__init__(name, initial_waitlist, dm, data)
 
     def remove_x(self, x: np.ndarray) -> None:
         for patient in x:
@@ -211,8 +218,9 @@ class MaxPolicy(Policy):
         name: str,  # policy name, reported in wandb
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information of the transplant system
+        data: str='test',
     ) -> None:
-        super().__init__(name, initial_waitlist, dm)
+        super().__init__(name, initial_waitlist, dm, data)
 
         self._setup()
 
@@ -289,8 +297,9 @@ class TransplantBenefit(MaxPolicy):
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information of the transplant system
         inference: Inference,
+        data: str='test',
     ) -> None:
-        super().__init__(name, initial_waitlist, dm)
+        super().__init__(name, initial_waitlist, dm, data)
 
         self.inference = inference
 
@@ -327,8 +336,9 @@ class ConfidentMatch(MaxPolicy):
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information of the transplant system
         inference: Inference,
+        data: str='test',
     ) -> None:
-        super().__init__(name, initial_waitlist, dm)
+        super().__init__(name, initial_waitlist, dm, data)
 
         self.inference = inference
 
@@ -351,8 +361,9 @@ class OrganITE(MaxPolicy):
         inference_VAE: Inference,
         a: float = 1.0,
         b: float = 1.0,
+        data: str='test',
     ) -> None:
-        super().__init__(name, initial_waitlist, dm)
+        super().__init__(name, initial_waitlist, dm, data)
         self.inference_ITE = inference_ITE
         self.inference_VAE = inference_VAE
 
@@ -392,7 +403,7 @@ class OrganITE(MaxPolicy):
         optimal_organ_ix = np.argmax(ITEs)
         optimal_organ = sample_organs[optimal_organ_ix]
 
-        return optimal_organ
+        return optimal_organ.reshape(1, -1)
 
     def _get_lambda(self, patient: np.ndarray, organ: np.ndarray) -> np.ndarray:
         optimal_organ = self._get_optimal_organ(patient)
@@ -422,7 +433,7 @@ class OrganITE(MaxPolicy):
         self,
         o_covariates: np.ndarray,
     ) -> np.ndarray:
-        return self.inference_VAE(o_covariates)
+        return self.inference_VAE(torch.Tensor(o_covariates).double())
 
     def _get_patients(self, x: np.ndarray, train: bool = False) -> np.ndarray:
         return self._get_instances(x, self.dm.x_cols, data_class=Patient, train=train)
@@ -459,8 +470,9 @@ class OrganSyncMax(MaxPolicy):
         dm: OrganDataModule,
         inference_0: Inference,
         inference_1: Inference,
+        data: str='test',
     ) -> None:
-        super().__init__(name, initial_waitlist, dm)
+        super().__init__(name, initial_waitlist, dm, data)
 
         self.inference_0 = inference_0
         self.inference_1 = inference_1
@@ -499,8 +511,9 @@ class OrganSync(Policy):
         inference_0: Inference,
         inference_1: Inference,
         max_contributors: int = 30,
+        data: str='test',
     ) -> None:
-        super().__init__(name, initial_waitlist, dm)
+        super().__init__(name, initial_waitlist, dm, data)
 
         self.K = K  # amount of queues (hyperparameter)
         self.max_contributors = (
