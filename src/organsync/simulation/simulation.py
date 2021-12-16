@@ -1,12 +1,11 @@
 from dataclasses import dataclass, field
-from typing import Any, Tuple
-
 from datetime import date
-from dateutil.rrule import rrule, DAILY
+from typing import Any, Tuple
 
 import numpy as np
 import pandas as pd
 import torch
+from dateutil.rrule import DAILY, rrule
 from tqdm import tqdm
 
 from organsync.data.data_module import OrganDataModule
@@ -194,9 +193,6 @@ class Sim:
                 ]
             )
 
-        catted = np.append(
-            patients_cov, organs_cov, axis=1
-        )  # calculate time to live (ttl) with organ using inference_1
         ttl = self.inference_1(x=patients_cov, o=organs_cov).numpy().flatten()
 
         self._remove_patients(
@@ -299,36 +295,35 @@ class DatedSim(Sim):
         no_patient_arrival: bool = True,
     ) -> None:
 
-
         self.dm = dm
 
-        self.DATA = pd.concat([dm._test_processed.copy(deep=True), dm._train_processed.copy(deep=True)])
+        self.DATA = pd.concat(
+            [dm._test_processed.copy(deep=True), dm._train_processed.copy(deep=True)]
+        )
         self.DATA_true = self.DATA.copy(deep=True)
         self.DATA_true[self.dm.real_cols] = self.dm.scaler.inverse_transform(
-            self.DATA_true[
-                dm.real_cols
-            ]
+            self.DATA_true[dm.real_cols]
         )
-        self.DATA_true['retrieval_date_time'] = pd.to_datetime(
-            self.DATA_true.retrieval_date, unit='s'
+        self.DATA_true["retrieval_date_time"] = pd.to_datetime(
+            self.DATA_true.retrieval_date, unit="s"
         )
-        
 
         self.patients = self.DATA[dm.x_cols].copy(deep=True)
         self.organs = self.DATA[
-            np.delete(dm.o_cols, np.where(dm.o_cols == 'retrieval_date'))
+            np.delete(dm.o_cols, np.where(dm.o_cols == "retrieval_date"))
         ].copy(deep=True)
         self.patients_true = self.DATA_true[dm.x_cols].copy(deep=True)
         self.organs_true = self.DATA_true[
-            [*np.delete(dm.o_cols, np.where(dm.o_cols == 'retrieval_date')), 'retrieval_date_time']
+            [
+                *np.delete(dm.o_cols, np.where(dm.o_cols == "retrieval_date")),
+                "retrieval_date_time",
+            ]
         ].copy(deep=True)
 
         self.years = years
         self.initial_waitlist_size = initial_waitlist_size
         self.start_date = date(np.min(self.years), 1, 1)
         self.end_date = date(np.max(self.years), 12, 31)
-
-
 
         if no_patient_arrival:
             # Ideally, we would also use a day for each patient.
@@ -338,30 +333,24 @@ class DatedSim(Sim):
             #   (in order of appearance) accordingly. This way, the same
             #   order across runs is maintained, and we violate– at most –
             #   a few days of discrepancies with the (unknown) real data.
-            patient_indices = np.array(self.patients[
-                self.patients_true.regyr.isin(self.years)].index)
+            patient_indices = np.array(
+                self.patients[self.patients_true.regyr.isin(self.years)].index
+            )
 
-            amount_of_days = (self.end_date-self.start_date).days+1
+            amount_of_days = (self.end_date - self.start_date).days + 1
             split_indices = np.array_split(patient_indices, amount_of_days)
             self.DATA_true["patient_arrival_date"] = np.nan
 
-            for i, day in enumerate(rrule(DAILY, dtstart=self.start_date, until=self.end_date)):
+            for i, day in enumerate(
+                rrule(DAILY, dtstart=self.start_date, until=self.end_date)
+            ):
                 self.DATA_true.loc[split_indices[i], "patient_arrival_date"] = day
                 self.patients_true.loc[split_indices[i], "patient_arrival_date"] = day
-        
-        
-        
-        
-        
-        
-        
+
         self.inference_0 = inference_0
         self.inference_1 = inference_1
 
         self.waitlist = np.array([])
-
-        
-
 
         X_tmp = torch.Tensor(
             self.DATA[self.dm.x_cols].to_numpy()
@@ -372,27 +361,27 @@ class DatedSim(Sim):
 
         self._setup()
 
-        
     def _setup(self):
         # SETUP SAMPLE
         min_year = np.min(self.years)
         max_year = np.max(self.years)
 
         indices = self.DATA_true[
-            (self.DATA_true.regyr >= min_year - 1) & 
-            (self.DATA_true.regyr <= max_year)
+            (self.DATA_true.regyr >= min_year - 1) & (self.DATA_true.regyr <= max_year)
         ].index
 
         self.DATA_true = self.DATA_true.loc[indices]
         self.DATA = self.DATA.loc[indices]
 
         # SETUP WAITLIST
-        waitlist_indxs = self.DATA_true[
-            self.DATA_true.regyr == min_year - 1
-        ].tail(self.initial_waitlist_size).index
+        waitlist_indxs = (
+            self.DATA_true[self.DATA_true.regyr == min_year - 1]
+            .tail(self.initial_waitlist_size)
+            .index
+        )
 
         patients_on_waitlist_df = self.DATA.loc[waitlist_indxs]
-        
+
         self.waitlist = np.array(
             [
                 Sim_Patient(
@@ -406,38 +395,40 @@ class DatedSim(Sim):
         # RESET STATS
         self.stats = Stats()
 
-
     def simulate(self, policy: Policy, log: bool = False) -> Tuple[Stats, pd.DataFrame]:
 
-        have_empty = False
         for day in tqdm(rrule(DAILY, dtstart=self.start_date, until=self.end_date)):
             self.iterate(policy, day, log=log)
-        
+
         return self.stats, self.log_df
 
     def _sample_patients(self, day: date = None) -> np.ndarray:
         assert day is not None, "Should have day in DatedSim when sampling patients"
 
         patient_indices = self.patients_true[
-            (pd.DatetimeIndex(self.patients_true.patient_arrival_date).day == day.day) &
-            (pd.DatetimeIndex(self.patients_true.patient_arrival_date).month == day.month) &
-            (pd.DatetimeIndex(self.patients_true.patient_arrival_date).year == day.year)
+            (pd.DatetimeIndex(self.patients_true.patient_arrival_date).day == day.day)
+            & (
+                pd.DatetimeIndex(self.patients_true.patient_arrival_date).month
+                == day.month
+            )
+            & (
+                pd.DatetimeIndex(self.patients_true.patient_arrival_date).year
+                == day.year
+            )
         ].index
 
         return patient_indices
-    
+
     def _sample_organs(self, day: date = None) -> np.ndarray:
         assert day is not None, "Should have day in DatedSim when sampling organs"
 
-
         organ_indices = self.organs_true[
-            (pd.DatetimeIndex(self.organs_true.retrieval_date_time).day == day.day) &
-            (pd.DatetimeIndex(self.organs_true.retrieval_date_time).month == day.month) &
-            (pd.DatetimeIndex(self.organs_true.retrieval_date_time).year == day.year)
+            (pd.DatetimeIndex(self.organs_true.retrieval_date_time).day == day.day)
+            & (
+                pd.DatetimeIndex(self.organs_true.retrieval_date_time).month
+                == day.month
+            )
+            & (pd.DatetimeIndex(self.organs_true.retrieval_date_time).year == day.year)
         ].index
 
         return organ_indices
-
-
-
-

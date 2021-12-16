@@ -1,10 +1,10 @@
 import click
 import torch
+import wandb
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
-import wandb
 from experiments.data.data_module import (
     UKRegDataModule,
     UNOS2UKRegDataModule,
