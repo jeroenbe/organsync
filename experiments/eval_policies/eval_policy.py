@@ -1,7 +1,7 @@
 import click
 import pytorch_lightning as pl
-
 import wandb
+
 from experiments.data.data_module import (
     UKRegDataModule,
     UNOS2UKRegDataModule,

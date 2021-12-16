@@ -147,7 +147,7 @@ class UKRegDataModule(OrganDataModule):
         self.x_cols = np.union1d(xm1, xm2)
         self.x_cols = np.setdiff1d(self.x_cols, ["PSURV", "rwtime"])
         self.o_cols = np.load(f"{self.data_dir}/o_cols_m2.npy", allow_pickle=True)
-        self.o_cols = np.delete(self.o_cols, np.where(self.o_cols == 'retrieval_date'))
+        self.o_cols = np.delete(self.o_cols, np.where(self.o_cols == "retrieval_date"))
         self.real_cols = np.load(f"{self.data_dir}/impute.npy", allow_pickle=True)
         self.real_cols = np.array([*self.real_cols, "Y"])
 

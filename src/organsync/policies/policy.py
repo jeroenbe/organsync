@@ -28,17 +28,17 @@ class Policy(ABC):
         name: str,  # policy name, reported in wandb
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information
-        data: str='test',
+        data: str = "test",
         #   of the transplant system
     ) -> None:
 
         self.name = name
         self.waitlist = initial_waitlist
         self.dm = dm
-        if data == 'test':
+        if data == "test":
             self.test = dm._test_processed  # perform on test set
-        if data == 'all':
-            self.test = dm._all_processed   # perform on all data
+        if data == "all":
+            self.test = dm._all_processed  # perform on all data
 
     @abstractclassmethod
     def get_xs(self, organs: np.ndarray) -> np.ndarray:
@@ -86,7 +86,7 @@ class MELD(Policy):
         name: str,  # policy name, reported in wandb
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information of the transplant system
-        data: str='test',
+        data: str = "test",
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
 
@@ -166,7 +166,7 @@ class MELD_na(MELD):
         name: str,  # policy name, reported in wandb
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information of the transplant system
-        data: str='test',
+        data: str = "test",
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
 
@@ -192,7 +192,7 @@ class FIFO(Policy):
         name: str,  # policy name, reported in wandb
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information of the transplant system
-        data: str='test',
+        data: str = "test",
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
 
@@ -218,7 +218,7 @@ class MaxPolicy(Policy):
         name: str,  # policy name, reported in wandb
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information of the transplant system
-        data: str='test',
+        data: str = "test",
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
 
@@ -297,7 +297,7 @@ class TransplantBenefit(MaxPolicy):
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information of the transplant system
         inference: Inference,
-        data: str='test',
+        data: str = "test",
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
 
@@ -336,7 +336,7 @@ class ConfidentMatch(MaxPolicy):
         initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
         dm: OrganDataModule,  # datamodule containing all information of the transplant system
         inference: Inference,
-        data: str='test',
+        data: str = "test",
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
 
@@ -361,7 +361,7 @@ class OrganITE(MaxPolicy):
         inference_VAE: Inference,
         a: float = 1.0,
         b: float = 1.0,
-        data: str='test',
+        data: str = "test",
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
         self.inference_ITE = inference_ITE
@@ -470,7 +470,7 @@ class OrganSyncMax(MaxPolicy):
         dm: OrganDataModule,
         inference_0: Inference,
         inference_1: Inference,
-        data: str='test',
+        data: str = "test",
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
 
@@ -511,7 +511,7 @@ class OrganSync(Policy):
         inference_0: Inference,
         inference_1: Inference,
         max_contributors: int = 30,
-        data: str='test',
+        data: str = "test",
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
 
