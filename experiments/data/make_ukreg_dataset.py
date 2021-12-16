@@ -11,6 +11,36 @@ from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.impute import IterativeImputer
 
 
+def _parse_disease_group(disease: int) -> int:
+    if disease in [441, 442, 443, 444, 445, 447]:
+        return 1  # HCC
+    elif disease in [424]:
+        return 2  # Hepatitis C (HCV)
+    elif disease in [419]:
+        return 3  # Alcohol liver disease
+    elif disease in [413, 436]:
+        return 4  # Hepatitis B (HBV)
+    elif disease in [414]:
+        return 5  # PSC
+    elif disease in [411]:
+        return 6  # PBC
+    elif disease in [412, 417]:
+        return 7  # Autoimmune/cryptogenic
+    elif disease in [415, 422, 426, 450, 452, 454, 456, 457, 461, 462, 434]:
+        return 8  # NAFLD/Metabolic/Wilson's/alpha-1
+    return 9  # Other
+
+
+def _parse_cod(cod: int) -> int:
+    if cod == 10 or cod == 11:
+        return 0  # Intracranial bleed/thrombosis
+    elif cod >= 20 and cod <= 29:
+        return 1  # Trauma RTA
+    elif cod >= 30 and cod <= 39:
+        return 2  # Non-RTA trauma / suicide / acciden
+    return 3  # Other
+
+
 def load_data(path: Path, lim: Optional[int] = None) -> List[pd.DataFrame]:
     """Loads the data– in parallel –to memory; typically passed to prep_liver_data or any other preprocessor function.
     INPUT - [Iterable[str]]: An Iterable of filepaths to datasets
@@ -114,6 +144,12 @@ def prep_ukeld_data(
 
     O = O[O.PCENS.notna()]
 
+    O["DCOD"] = O["DCOD"].apply(lambda cause: _parse_cod(cause))
+    O["RCSPLD1"] = O["RCSPLD1"].apply(lambda disease: _parse_disease_group(disease))
+    X["PRIMARY_LIVER_DISEASE"] = X["PRIMARY_LIVER_DISEASE"].apply(
+        lambda disease: _parse_disease_group(disease)
+    )
+
     for k in M2_cols.keys():
         if M2_cols[k]:
             O.loc[:, k] = O[k].replace(9, np.nan)
@@ -138,11 +174,7 @@ def prep_ukeld_data(
 
     X_drop: List[str] = []
 
-    O_drop = [
-        "DCOD_76",
-        "DCOD_78",
-        "DCOD_80",
-    ]
+    O_drop: list = []
 
     o_cols = pd.get_dummies(O[list(M2_cols_D.keys())]).drop(O_drop, 1).columns.values
     x_cols = pd.get_dummies(O[list(M2_cols_X.keys())]).drop(X_drop, 1).columns.values
