@@ -135,7 +135,6 @@ def prep_ukeld_data(
         "DCOD": True,  # 599, 888
         "DBMI": False,
         "DGRP": False,
-        "retrieval_date": False,
     }
 
     M2_cols = {**M2_cols_X, **M2_cols_D}
