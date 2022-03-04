@@ -289,6 +289,73 @@ class MaxPolicy(Policy):
         ...
 
 
+class BestMatch(MaxPolicy):
+    def __init__(
+        self,
+        name: str,
+        initial_waitlist: np.ndarray,
+        dm: OrganDataModule,
+        inference: Inference,
+        data: str='test',
+    ) -> None:
+        super().__init__(name, initial_waitlist, dm, data)
+        self.inference = inference
+    
+    def _setup(self) -> None:
+        self.x_cols = self.dm.x_cols#[self.dm.x_cols != 'CENS']
+        waitlist_patients = self.test.loc[self.waitlist, self.x_cols].copy().to_numpy()
+
+        self.waitlist = np.array(
+            [
+                Patient(id=self.waitlist[i], covariates=waitlist_patients[i])
+                for i in range(len(self.waitlist))
+            ]
+        )
+        self.waitlist = np.unique(self.waitlist)
+
+    def _calculate_scores(
+        self, x_covariates: np.ndarray, o_covariates: np.ndarray
+    ) -> np.ndarray:
+        return [
+            self.inference(np.array([patient]), o_covariates)
+            for patient in x_covariates
+        ]
+
+class SickestFirst(MaxPolicy):
+    def __init__(
+        self,
+        name: str,
+        initial_waitlist: np.ndarray,
+        dm: OrganDataModule,
+        inference: Inference,
+        data: str='test',
+    ) -> None:
+        super().__init__(name, initial_waitlist, dm, data)
+        self.inference = inference
+    
+    def _setup(self) -> None:
+        self.x_cols = self.dm.x_cols#[self.dm.x_cols != 'CENS']
+        waitlist_patients = self.test.loc[self.waitlist, self.x_cols].copy().to_numpy()
+
+        self.waitlist = np.array(
+            [
+                Patient(id=self.waitlist[i], covariates=waitlist_patients[i])
+                for i in range(len(self.waitlist))
+            ]
+        )
+        self.waitlist = np.unique(self.waitlist)
+
+    def _calculate_scores(
+        self, x_covariates: np.ndarray, o_covariates: np.ndarray
+    ) -> np.ndarray:
+        return [
+            self.inference(np.array([patient])) ** -1
+            for patient in x_covariates
+        ]
+
+
+
+
 # Contemporary UK policy
 class TransplantBenefit(MaxPolicy):
     def __init__(

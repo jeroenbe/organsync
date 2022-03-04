@@ -26,7 +26,7 @@ def load_data(path: Path, lim: Optional[int] = None) -> List[pd.DataFrame]:
     )
 
     def load(location: Path) -> pd.DataFrame:
-        return pd.read_excel(location, nrows=lim)
+        return pd.read_excel(location, nrows=lim, engine='openpyxl')
 
     return Parallel(n_jobs=len(location))(delayed(load)(loc) for loc in location)
 
