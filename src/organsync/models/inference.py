@@ -2,11 +2,15 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 import numpy as np
+import pandas as pd
 import torch
 
 from organsync.models.confidentmatch import ConfidentMatch
 from organsync.models.organite_network import OrganITE_Network, OrganITE_Network_VAE
 from organsync.models.organsync_network import OrganSync_Network
+from organsync.models.transplantbenefit import TBS
+
+from organsync.data.data_module import OrganDataModule
 
 
 class Inference(ABC):
@@ -93,3 +97,28 @@ class Inference_ConfidentMatch(Inference):
         #   using X AND O together.
         X = np.append(x, o, axis=1)
         return self.model.estimate(X)
+
+
+class Inference_TBS(Inference):
+    def __init__(self, model: TBS, mean: float, std: float, dm: OrganDataModule) -> None:
+        assert isinstance(model, TBS), "Model must be TBS"
+        super().__init__(model, mean, std)
+
+        self.dm = dm
+
+    def infer(self, x: pd.DataFrame) -> Any:
+        x = self._transform_data(x)
+        res = self.model.predict(data=x)
+        return res.score.values, res.m1.values, res.m2.values # tbs, m1, m2
+
+    def _transform_data(self, x: pd.DataFrame) -> pd.DataFrame:
+        x_true = x.copy(deep=True)
+
+        present = np.where(np.in1d(self.dm.real_cols, x_true.columns.values))[0]
+        cols = self.dm.real_cols[present]
+
+
+        x_true.loc[:, cols] = self.dm.scaler.mean_[present] + x_true.loc[:, cols] * self.dm.scaler.scale_[present]
+        
+        return x_true
+
