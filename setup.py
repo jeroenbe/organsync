@@ -47,4 +47,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=install_requires,
+    include_package_data=True,
 )

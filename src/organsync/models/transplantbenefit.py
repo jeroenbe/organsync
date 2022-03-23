@@ -94,25 +94,25 @@ class TBS:
         centre_tbs = 0
         rregistration_tbs = _parse_reg_year(data["regyr"])
         rinpatient_tbs = int(data["PATIENT_LOCATION"]) - 1
-        rwaiting_time_tbs = data["rwtime"] + 1
+        rwaiting_time_tbs = data["rwtime"] + 1 if 'rwtime' in data else 1
         rage_tbs = data["RAGE"]
         rgender_tbs = int(data["SEX"] == 2)
         rdisease_primary_tbs = _parse_disease_group(data["PRIMARY_LIVER_DISEASE"])
         rdisease_secondary_tbs = 9
         rdisease_tertiary_tbs = 9
         previous_tx_tbs = (
-            data["NO_OF_PREVIOUS_LIVER_TX"] if data["NO_OF_PREVIOUS_LIVER_TX"] else 0
+            data["NO_OF_PREVIOUS_LIVER_TX"] if "NO_OF_PREVIOUS_LIVER_TX" in data else 0
         )
-        rprevious_surgery_tbs = int(data["PREV_ABDOMINAL_SURGERY"])
+        rprevious_surgery_tbs = int(data["PREV_ABDOMINAL_SURGERY"]) if 'PREV_ABDOMINAL_SURGERY' in data else 8
         rbilirubin_tbs = data["SERUM_BILIRUBIN"]
         rinr_tbs = data["INR"]
         rcreatinine_tbs = data["SERUM_CREATININE"]
         rrenal_tbs = int(data["RENAL_SUPPORT"] != 3)
         rsodium_tbs = data["SERUM_SODIUM"]
-        rpotassium_tbs = data["SERUM_POTASSIUM"]
-        ralbumin_tbs = data["SERUM_ALBUMIN"]
-        rencephalopathy_tbs = int(data["ENCEPHALOPATHY_GRADE"] != 0)
-        rascites_tbs = data["CURRENT_ASCITES"]
+        rpotassium_tbs = data["SERUM_POTASSIUM"] if 'SERUM_POTASSIUM' in data else 0
+        ralbumin_tbs = data["SERUM_ALBUMIN"] if 'SERUM_ALBUMIN' in data else 0
+        rencephalopathy_tbs = int(data["ENCEPHALOPATHY_GRADE"] != 0) if 'ENCEPHALOPATHY_GRADE' in data else 8
+        rascites_tbs = data["CURRENT_ASCITES"] if 'CURRENT_ASCITES' in data else 8
         rdiabetes_tbs = int(data["DIABETIC"])
         dage_tbs = data["DAGE"]
         dbmi_tbs = data["DBMI"]

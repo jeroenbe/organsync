@@ -23,3 +23,6 @@ datasets
 /data
 /LivSim_results
 LivSim_results
+/cov_tables
+/debug.py
+/debug2.py

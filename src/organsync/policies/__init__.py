@@ -10,4 +10,7 @@ from .policy import (  # noqa: F401
     OrganSyncMax,
     Policy,
     TransplantBenefit,
+    TransplantBenefit_original,
+    BestMatch,
+    SickestFirst
 )
