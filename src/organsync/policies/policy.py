@@ -400,9 +400,14 @@ class TransplantBenefit_original(MaxPolicy):
         dm: OrganDataModule,
         inference: Inference, 
         data: str='test',
+        model: str='tbs', # can also be 'm1' or 'm2'
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
         self.inference = inference
+        model_indices = {
+            'tbs': 0, 'm1': 1, 'm2': 2
+        }
+        self.model_index = model_indices[model]
     
     def _setup(self) -> None:
         self.x_cols = self.dm.x_cols[self.dm.x_cols != "CENS"]
@@ -431,7 +436,7 @@ class TransplantBenefit_original(MaxPolicy):
             VAR = [int(re.findall('\d+', V)[0]) for V in VAR]
             DATA.loc[:, variable] = VAR
 
-        return self.inference.infer(x=DATA)[0]
+        return self.inference.infer(x=DATA)[self.model_index]
 
 
 
