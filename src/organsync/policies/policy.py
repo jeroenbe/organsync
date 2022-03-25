@@ -435,8 +435,10 @@ class TransplantBenefit_original(MaxPolicy):
             VAR = pd.get_dummies(VAR).idxmax(1).values
             VAR = [int(re.findall('\d+', V)[0]) for V in VAR]
             DATA.loc[:, variable] = VAR
+        
+        power = -1 if self.model_index == 1 else 1 # turn max into min policy for M1
 
-        return self.inference.infer(x=DATA)[self.model_index]
+        return self.inference.infer(x=DATA)[self.model_index] ** power
 
 
 
