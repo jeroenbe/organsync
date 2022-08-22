@@ -1,4 +1,5 @@
-import heapq, re
+import heapq
+import re
 from abc import ABC, abstractclassmethod
 from collections import Counter
 from dataclasses import dataclass, field
@@ -297,13 +298,13 @@ class BestMatch(MaxPolicy):
         initial_waitlist: np.ndarray,
         dm: OrganDataModule,
         inference: Inference,
-        data: str='test',
+        data: str = "test",
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
         self.inference = inference
-    
+
     def _setup(self) -> None:
-        self.x_cols = self.dm.x_cols#[self.dm.x_cols != 'CENS']
+        self.x_cols = self.dm.x_cols  # [self.dm.x_cols != 'CENS']
         waitlist_patients = self.test.loc[self.waitlist, self.x_cols].copy().to_numpy()
 
         self.waitlist = np.array(
@@ -322,6 +323,7 @@ class BestMatch(MaxPolicy):
             for patient in x_covariates
         ]
 
+
 class SickestFirst(MaxPolicy):
     def __init__(
         self,
@@ -329,13 +331,13 @@ class SickestFirst(MaxPolicy):
         initial_waitlist: np.ndarray,
         dm: OrganDataModule,
         inference: Inference,
-        data: str='test',
+        data: str = "test",
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
         self.inference = inference
-    
+
     def _setup(self) -> None:
-        self.x_cols = self.dm.x_cols#[self.dm.x_cols != 'CENS']
+        self.x_cols = self.dm.x_cols  # [self.dm.x_cols != 'CENS']
         waitlist_patients = self.test.loc[self.waitlist, self.x_cols].copy().to_numpy()
 
         self.waitlist = np.array(
@@ -349,12 +351,7 @@ class SickestFirst(MaxPolicy):
     def _calculate_scores(
         self, x_covariates: np.ndarray, o_covariates: np.ndarray
     ) -> np.ndarray:
-        return [
-            self.inference(np.array([patient])) ** -1
-            for patient in x_covariates
-        ]
-
-
+        return [self.inference(np.array([patient])) ** -1 for patient in x_covariates]
 
 
 # Contemporary UK policy
@@ -394,21 +391,19 @@ class TransplantBenefit(MaxPolicy):
 
 class TransplantBenefit_original(MaxPolicy):
     def __init__(
-        self, 
-        name: str, 
+        self,
+        name: str,
         initial_waitlist: np.ndarray,
         dm: OrganDataModule,
-        inference: Inference, 
-        data: str='test',
-        model: str='tbs', # can also be 'm1' or 'm2'
+        inference: Inference,
+        data: str = "test",
+        model: str = "tbs",  # can also be 'm1' or 'm2'
     ) -> None:
         super().__init__(name, initial_waitlist, dm, data)
         self.inference = inference
-        model_indices = {
-            'tbs': 0, 'm1': 1, 'm2': 2
-        }
+        model_indices = {"tbs": 0, "m1": 1, "m2": 2}
         self.model_index = model_indices[model]
-    
+
     def _setup(self) -> None:
         self.x_cols = self.dm.x_cols[self.dm.x_cols != "CENS"]
         waitlist_patients = self.test.loc[self.waitlist, self.x_cols].copy().to_numpy()
@@ -426,23 +421,29 @@ class TransplantBenefit_original(MaxPolicy):
     ) -> np.ndarray:
         o_covariates = np.tile(o_covariates, reps=(x_covariates.shape[0], 1))
 
-        DATA = pd.DataFrame(data=np.append(x_covariates, o_covariates, axis=1), columns=[*self.x_cols, *self.dm.o_cols])
-        
+        DATA = pd.DataFrame(
+            data=np.append(x_covariates, o_covariates, axis=1),
+            columns=[*self.x_cols, *self.dm.o_cols],
+        )
+
         # patient one-hots
-        ohe = ['DCOD', 'PATIENT_LOCATION', 'RASCITES', 'RENAL_SUPPORT', 'RREN_SUP', 'SEX']
+        ohe = [
+            "DCOD",
+            "PATIENT_LOCATION",
+            "RASCITES",
+            "RENAL_SUPPORT",
+            "RREN_SUP",
+            "SEX",
+        ]
         for variable in ohe:
             VAR = DATA.filter(regex=variable)
             VAR = pd.get_dummies(VAR).idxmax(1).values
-            VAR = [int(re.findall('\d+', V)[0]) for V in VAR]
+            VAR = [int(re.findall("\\d+", V)[0]) for V in VAR]
             DATA.loc[:, variable] = VAR
-        
-        power = -1 if self.model_index == 1 else 1 # turn max into min policy for M1
+
+        power = -1 if self.model_index == 1 else 1  # turn max into min policy for M1
 
         return self.inference.infer(x=DATA)[self.model_index] ** power
-
-
-
-
 
 
 # ML-based policies

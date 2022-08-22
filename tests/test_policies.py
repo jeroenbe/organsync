@@ -129,7 +129,7 @@ def test_organsync_policy() -> None:
 
     mock_inference = Inference_OrganSync(
         OrganSync_Network(
-            input_dim=mock_data.size(1),
+            input_dim=mock_data.dims[1],
             hidden_dim=3,
             output_dim=4,
             lr=0.05,

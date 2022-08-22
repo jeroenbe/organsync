@@ -1,10 +1,10 @@
 cvxpy
 joblib
-lifelines
-numpy
-pandas
-pytorch_lightning
-sklearn
-torch
-torchmetrics
+lifelines>=0.27
+numpy>=1.21.0
+pandas>=1.3.5
+pytorch-lightning>=1.4.9
+scikit_learn>=1.0.0
+torch>=1.9.0
+torchmetrics==0.5.1
 xgbse
