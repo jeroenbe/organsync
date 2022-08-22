@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
-from torch.utils.data import DataLoader, TensorDataset, random_split, ConcatDataset
+from torch.utils.data import ConcatDataset, DataLoader, TensorDataset, random_split
 
 
 class OrganDataModule(pl.LightningDataModule):
@@ -105,7 +105,7 @@ class OrganDataModule(pl.LightningDataModule):
             self.dims = (X.size(0), X.size(1) + O.size(1))
 
         if stage == "test" or stage is None:
-            
+
             X = torch.tensor(X_test.to_numpy(), dtype=torch.double)
             O = torch.tensor(O_test.to_numpy(), dtype=torch.double)
             Y = torch.tensor(Y_test.to_numpy(), dtype=torch.double).view(-1, 1)
@@ -116,5 +116,9 @@ class OrganDataModule(pl.LightningDataModule):
 
         if stage is None:
             self.all = ConcatDataset([self.train, self.test])
-            self._all_processed = pd.concat([self._test_processed.copy(deep=True), self._train_processed.copy(deep=True)])
-
+            self._all_processed = pd.concat(
+                [
+                    self._test_processed.copy(deep=True),
+                    self._train_processed.copy(deep=True),
+                ]
+            )
