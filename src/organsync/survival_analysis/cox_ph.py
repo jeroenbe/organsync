@@ -26,9 +26,7 @@ class CoxPH:
         df = pd.concat([X, T, Y], axis=1)
         df.columns = [x for x in X.columns] + ["time", "label"]
 
-        self.model.fit(
-            df, duration_col="time", event_col="label", step_size=0.2, **kwargs
-        )
+        self.model.fit(df, duration_col="time", event_col="label", **kwargs)
 
         return self
 
