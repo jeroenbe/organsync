@@ -2,6 +2,7 @@ from .base import Organ, Patient  # noqa: F401
 from .policy import (  # noqa: F401
     FIFO,
     MELD,
+    MELD3,
     BestMatch,
     ConfidentMatch,
     MaxPolicy,
