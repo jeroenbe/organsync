@@ -1,15 +1,62 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from organsync.models.confidentmatch import ConfidentMatch
-from organsync.models.linear import MELD, MELD_na
+from organsync.models.linear import MELD, MELD3, MELD_na
 from organsync.models.organite_network import OrganITE_Network
 from organsync.models.organsync_network import OrganSync_Network
 
 
 def test_meld_sanity() -> None:
-    assert MELD().score(0.7, 1.0, 0.7) == 1.6648227489785334
-    assert MELD_na().score(0.7, 1.0, 0.7, 100) == 40.0
+    assert MELD().score(
+        serum_bilirubin=0.3, inr=0.8, serum_creatinine=0.7
+    ) == pytest.approx(6, 0.5)
+    assert MELD().score(
+        serum_bilirubin=1.9, inr=1.2, serum_creatinine=1.3
+    ) == pytest.approx(13, 0.5)
+
+
+def test_meldna_sanity() -> None:
+    assert MELD_na().score(
+        serum_bilirubin=0.3, inr=0.8, serum_creatinine=0.7, serum_sodium=136
+    ) == pytest.approx(7, 0.5)
+
+    assert MELD_na().score(
+        serum_bilirubin=1.9, inr=1.2, serum_creatinine=1.3, serum_sodium=115
+    ) == pytest.approx(23, 0.1)
+
+
+def test_meld3_sanity() -> None:
+    score = MELD3().score(
+        sex="M",
+        serum_bilirubin=0.3,
+        inr=0.8,
+        serum_creatinine=0.7,
+        serum_sodium=136,
+        serum_albumin=2.5,
+    )
+    assert score == pytest.approx(7, 0.5)
+
+    score = MELD3().score(
+        sex="F",
+        serum_bilirubin=0.3,
+        inr=0.8,
+        serum_creatinine=0.7,
+        serum_sodium=136,
+        serum_albumin=2.5,
+    )
+    assert score == pytest.approx(9.6, 0.1)
+
+    score = MELD3().score(
+        sex="M",
+        serum_bilirubin=1.9,
+        inr=1.2,
+        serum_creatinine=1.3,
+        serum_sodium=136,
+        serum_albumin=3.6,
+    )
+    assert score == pytest.approx(14, 0.1)
 
 
 def test_confidentmatch_sanity() -> None:
