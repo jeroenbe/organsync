@@ -36,9 +36,6 @@ organsync/
     |- data                                 # datasets
 ```
 
-## Used frameworks
-We make extensive use of Weights and Biases ([W&B](https://wandb.com)) to log our model performance as well as trained model weights. To run our code, we recommend to create a W&B account ([here](https://wandb.ai/login?signup=true)) if you don't have one already. All code is written in [pytorch](https://pytorch.org) and [pytorch-lightning](http://pytorchlightning.ai/).
-
 
 ## Installing
 We have provided a `requirements.txt` file:
@@ -47,6 +44,23 @@ pip install -r requirements.txt
 pip install .
 ```
 Please use the above in a newly created virtual environment to avoid clashing dependencies. All code was written for `python 3.8.6`.
+
+## Available Models
+
+| Model | Paper | Code |
+|-------|-------|------|
+|  Organsync     |  [Learning Queueing Policies for Organ Transplantation Allocation using Interpretable Counterfactual Survival Analysis](https://vanderschaar-lab.com/papers/ICML_2021_OrganSync.pdf)     |   [Code](https://github.com/jeroenbe/organsync/blob/main/src/organsync/models/organsync_network.py)   |
+|  OrganITE     | [OrganITE: Optimal transplant donor organ offering using an individual treatment effect](https://www.vanderschaar-lab.com/papers/NeurIPS2020_OrganITE.pdf)      |   [Code](https://github.com/jeroenbe/organsync/blob/main/src/organsync/models/organite_network.py)   |
+| TransplantBenefit | [Policies and guidance](https://www.odt.nhs.uk/transplantation/tools-policies-and-guidance/policies-and-guidance/) | [Code](https://github.com/jeroenbe/organsync/blob/main/src/organsync/models/transplantbenefit.py) |
+| MELD | [A model to predict poor survival in patients undergoing transjugular intrahepatic portosystemic shunts](https://pubmed.ncbi.nlm.nih.gov/10733541/) | [Code](https://github.com/jeroenbe/organsync/blob/main/src/organsync/models/linear.py) | 
+| MELDna | [Hyponatremia and Mortality among Patients on the LiverTransplant Waiting List](https://pubmed.ncbi.nlm.nih.gov/18768945/) | [Code](https://github.com/jeroenbe/organsync/blob/main/src/organsync/models/linear.py) | 
+| MELD3 | [MELD 3.0: The Model for End-Stage Liver Disease Updated for the Modern Era](https://www.sciencedirect.com/science/article/abs/pii/S0016508521034697) | [Code](https://github.com/jeroenbe/organsync/blob/main/src/organsync/models/linear.py) | 
+| UKELD | [Selection of patients for liver transplantation and allocation of donated livers in the UK](https://pubmed.ncbi.nlm.nih.gov/17895356/) | [Code](https://github.com/jeroenbe/organsync/blob/main/src/organsync/models/linear.py) | 
+
+
+## Used frameworks
+We make extensive use of Weights and Biases ([W&B](https://wandb.com)) to log our model performance as well as trained model weights. To run our code, we recommend to create a W&B account ([here](https://wandb.ai/login?signup=true)) if you don't have one already. All code is written in [pytorch](https://pytorch.org) and [pytorch-lightning](http://pytorchlightning.ai/).
+
 
 ## Running experiments
 As indicated above, each notebook represents one experiment. The comments provided in the project hierarchy indicate the figure or table, and the specific paper the experiment is presented in. As a sidenote, in order to run simulation experiments (`experiments/notebooks/wandb/simulation_tests.ipynb`), you will need to have trained relevant inference models if the allocation policy requires them.
