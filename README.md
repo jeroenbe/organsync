@@ -1,5 +1,14 @@
 # Learning Queueing Policies for Organ Transplantation Allocation using _Interpretable_ Counterfactual Survival Analysis  </br><sub><sub>J. Berrevoets, A. M. Alaa, Z. Qian, J. Jordon, A. E. S. Gimson, M. van der Schaar [[ICML 2021]](http://proceedings.mlr.press/v139/berrevoets21a/berrevoets21a.pdf)</sub></sub>
 
+
+[![organsync](https://github.com/vanderschaarlab/organsync/actions/workflows/test_organsync.yml/badge.svg)](https://github.com/vanderschaarlab/organsync/actions/workflows/test_organsync.yml)
+[![arXiv](https://img.shields.io/badge/arXiv-2206.07769-b31b1b.svg)](https://proceedings.mlr.press/v139/berrevoets21a.html)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+
+![image](https://user-images.githubusercontent.com/1623754/187692238-cfa76554-d9c9-4cf9-907b-8a14beb0d567.png)
+
+
 In this repository we provide code for our ICML21 paper introducing OrganSync, a novel organ-to-patient allocation system. Note that this code is used for research purposes and is __not intented for use in practice__.
 
 In our paper we benchmark against OrganITE a previously introduced paper of ours. We have reimplemented OrganITE (as well as other benchmarks) using the same frameworks in this repository, such that all code is comparable throughout. For all previous implementations, we refer to OrganITE's dedicated [repository](https://github.com/vanderschaarlab/mlforhealthlabpub/tree/main/alg/organite).
