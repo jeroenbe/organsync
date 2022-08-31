@@ -15,6 +15,9 @@ from sklearn.cluster import KMeans
 
 from organsync.data.data_module import OrganDataModule
 from organsync.models.inference import Inference
+from organsync.models.linear import MELD as MELDscore
+from organsync.models.linear import MELD3 as MELD3score
+from organsync.models.linear import MELD_na as MELDnascore
 from organsync.policies import Organ, Patient
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -142,13 +145,12 @@ class MELD(Policy):
             ps[self.dm.real_cols]
         )
 
-        # DEFINITION OF (standard) MELD: https://en.wikipedia.org/wiki/Model_for_End-Stage_Liver_Disease#Determination
-        MELD_score = (
-            3.79 * np.log(ps.SERUM_BILIRUBIN)
-            + 11.2 * np.log(ps.INR)
-            + 9.57 * np.log(ps.SERUM_CREATININE)
-            + 6.43
+        MELD_score = MELDscore().score(
+            serum_bilirubin=ps.SERUM_BILIRUBIN,
+            inr=ps.INR,
+            serum_creatinine=ps.SERUM_CREATININE,
         )
+
         return MELD_score.to_numpy()
 
     def score(self, patients: np.ndarray) -> np.ndarray:
@@ -182,8 +184,43 @@ class MELD_na(MELD):
             ps[self.dm.real_cols]
         )
 
-        # MELD-na: MELD + 1.59*(135-SODIUM(mmol/l)) (https://github.com/kartoun/meld-plus/raw/master/MELD_Plus_Calculator.xlsx)
-        MELD_score = super()._meld(patients) + 1.59 * (135 - ps.SERUM_SODIUM)
+        MELD_score = MELDnascore().score(
+            serum_bilirubin=ps.SERUM_BILIRUBIN,
+            inr=ps.INR,
+            serum_creatinine=ps.SERUM_CREATININE,
+            serum_sodium=ps.SERUM_SODIUM,
+        )
+        return MELD_score.to_numpy()
+
+
+class MELD3(MELD):
+    def __init__(
+        self,
+        name: str,  # policy name, reported in wandb
+        initial_waitlist: np.ndarray,  # waitlist upon starting the simulation, [int]
+        dm: OrganDataModule,  # datamodule containing all information of the transplant system
+        data: str = "test",
+    ) -> None:
+        super().__init__(name, initial_waitlist, dm, data)
+
+    def _meld(self, patients: np.ndarray) -> np.ndarray:
+        # We can simply inherit from MELD as the only part
+        # that changes is they way we compute a MELD score
+        # by adding the last term in MELD_score.
+
+        ps = self.test.loc[self.test.index.isin(patients)].copy()
+        ps.loc[:, self.dm.real_cols] = self.dm.scaler.inverse_transform(
+            ps[self.dm.real_cols]
+        )
+
+        MELD_score = MELD3score().score(
+            sex=ps.SEX.map({0: "M", 1: "F"}),
+            serum_bilirubin=ps.SERUM_BILIRUBIN,
+            inr=ps.INR,
+            serum_creatinine=ps.SERUM_CREATININE,
+            serum_sodium=ps.SERUM_SODIUM,
+            serum_albumin=ps.SERUM_ALBUMIN,
+        )
         return MELD_score.to_numpy()
 
 

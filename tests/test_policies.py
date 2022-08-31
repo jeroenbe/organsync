@@ -10,7 +10,7 @@ from organsync.models.inference import (
 )
 from organsync.models.organite_network import OrganITE_Network, OrganITE_Network_VAE
 from organsync.models.organsync_network import OrganSync_Network
-from organsync.policies import MELD, MELD_na, OrganITE, OrganSync
+from organsync.policies import MELD, MELD3, MELD_na, OrganITE, OrganSync
 
 
 class MockScaler:
@@ -36,10 +36,12 @@ class MockDataModule(OrganDataModule):
 
     def prepare_data(self) -> None:
         self.real_cols = [
+            "SEX",
             "SERUM_BILIRUBIN",
             "INR",
             "SERUM_CREATININE",
             "SERUM_SODIUM",
+            "SERUM_ALBUMIN",
             "Y",
             "CENS",
         ]
@@ -48,6 +50,8 @@ class MockDataModule(OrganDataModule):
         self.DATA = pd.DataFrame(
             np.zeros((10000, len(self.real_cols))), columns=self.real_cols
         )
+        self.DATA["SEX"] = np.random.choice([0, 1], len(self.DATA))
+
         self.mean = 1
         self.std = 0.5
         self.scaler = MockScaler()
@@ -59,21 +63,34 @@ class MockDataModule(OrganDataModule):
 
 def test_meld_policy() -> None:
     mock_data = MockDataModule()
+    samples = mock_data._test_processed.sample(5)
 
-    mock = MELD("meld", [], mock_data)
+    mock = MELD("meld", samples.index.tolist(), mock_data)
 
     assert mock.name == "meld"
-    assert len(mock.waitlist) == 0
+    assert len(mock.waitlist) == 5
     assert mock.dm == mock_data
 
 
 def test_meld_na_policy() -> None:
     mock_data = MockDataModule()
+    samples = mock_data._test_processed.sample(5)
 
-    mock = MELD_na("meld_na", [], mock_data)
+    mock = MELD_na("meld_na", samples.index, mock_data)
 
     assert mock.name == "meld_na"
-    assert len(mock.waitlist) == 0
+    assert len(mock.waitlist) == 5
+    assert mock.dm == mock_data
+
+
+def test_meld3_policy() -> None:
+    mock_data = MockDataModule()
+    samples = mock_data._test_processed.sample(5)
+
+    mock = MELD3("meld3", samples.index, mock_data)
+
+    assert mock.name == "meld3"
+    assert len(mock.waitlist) == 5
     assert mock.dm == mock_data
 
 
