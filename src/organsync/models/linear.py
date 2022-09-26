@@ -106,6 +106,10 @@ class UKELD:
         inr: float,
         serum_sodium: float,
     ) -> float:
+        inr = np.clip(inr, 1, 10)
+        serum_creatinine = np.clip(serum_creatinine, 1, 4)
+        serum_bilirubin = np.clip(serum_bilirubin, 1, 10)
+        serum_sodium = np.clip(serum_sodium, 125, 137)
 
         return (
             (5.395 * np.log(inr))
