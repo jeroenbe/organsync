@@ -23,8 +23,8 @@ class XGBoostRiskEstimation:
         booster: int = 2,
         random_state: int = 0,
         objective: str = "cox",  # "aft", "cox"
-        strategy: str = "debiased_bce",  # "weibull", "debiased_bce"
-        n_estimators: int = 5,
+        strategy: str = "weibull",  # "weibull", "debiased_bce"
+        n_estimators: int = 3,
         **kwargs: Any,
     ) -> None:
         surv_params = {}
