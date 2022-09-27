@@ -5,7 +5,7 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from xgbse import XGBSEDebiasedBCE, XGBSEStackedWeibull
+from xgbse import XGBSEBootstrapEstimator, XGBSEDebiasedBCE, XGBSEStackedWeibull
 from xgbse.converters import convert_to_structured
 
 
@@ -24,6 +24,7 @@ class XGBoostRiskEstimation:
         random_state: int = 0,
         objective: str = "cox",  # "aft", "cox"
         strategy: str = "weibull",  # "weibull", "debiased_bce"
+        n_estimators: int = 5,
         **kwargs: Any,
     ) -> None:
         surv_params = {}
@@ -66,7 +67,7 @@ class XGBoostRiskEstimation:
         else:
             raise ValueError(f"unknown strategy {strategy}")
 
-        self.model = base_model
+        self.model = XGBSEBootstrapEstimator(base_model, n_estimators=n_estimators)
 
     def fit(
         self,
@@ -101,19 +102,32 @@ class XGBoostRiskEstimation:
         self,
         X: pd.DataFrame,
         time_horizons: list,
+        return_ci: bool = False,
     ) -> pd.DataFrame:
         if len(time_horizons) < 1:
             raise ValueError("Invalid input for time horizons.")
 
-        # surv, upper_ci, lower_ci = self.model.predict(X, return_ci = True)
-        surv = self.model.predict(X)
+        surv, upper_ci, lower_ci = self.model.predict(X, return_ci=True)
+
         surv = surv.loc[:, ~surv.columns.duplicated()]
+        upper_ci = upper_ci.loc[:, ~upper_ci.columns.duplicated()]
+        lower_ci = lower_ci.loc[:, ~lower_ci.columns.duplicated()]
 
         preds_ = np.zeros([np.shape(surv)[0], len(time_horizons)])
+        preds_upper = np.zeros([np.shape(surv)[0], len(time_horizons)])
+        preds_lower = np.zeros([np.shape(surv)[0], len(time_horizons)])
 
         time_bins = surv.columns
         for t, eval_time in enumerate(time_horizons):
             nearest = self._find_nearest(time_bins, eval_time)
             preds_[:, t] = np.asarray(1 - surv[nearest])
+            preds_upper[:, t] = np.asarray(1 - lower_ci[nearest])
+            preds_lower[:, t] = np.asarray(1 - upper_ci[nearest])
 
+        if return_ci:
+            return (
+                pd.DataFrame(preds_, columns=time_horizons),
+                pd.DataFrame(preds_upper, columns=time_horizons),
+                pd.DataFrame(preds_lower, columns=time_horizons),
+            )
         return pd.DataFrame(preds_, columns=time_horizons)
