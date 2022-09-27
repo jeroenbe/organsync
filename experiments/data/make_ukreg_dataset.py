@@ -80,6 +80,7 @@ def prep_ukeld_data(
         "INR": False,
         "SERUM_SODIUM": False,
         "RENAL_SUPPORT": True,
+        "BLOOD_GROUP": True,
         "PATIENT_LOCATION": True,
         "DIABETIC": False,
         "regyr": False,
@@ -110,7 +111,6 @@ def prep_ukeld_data(
     X = pd.get_dummies(X)
 
     x_drop = list(X.loc[:, X.var() < 0.01].columns)
-
     X = X.drop(columns=x_drop)  # too low variance in col
 
     M2_cols_X = {
@@ -134,7 +134,8 @@ def prep_ukeld_data(
         "DAGE": False,
         "DCOD": True,  # 599, 888
         "DBMI": False,
-        "DGRP": False,
+        "DGRP": True,
+        "DBG": True,
     }
 
     M2_cols = {**M2_cols_X, **M2_cols_D}
@@ -148,14 +149,19 @@ def prep_ukeld_data(
         lambda disease: _parse_disease_group(disease)
     )
 
-    X_drop: List[str] = []
-    O_drop: list = []
+    for k in M2_cols.keys():
+        if M2_cols[k]:
+            O.loc[:, k] = O[k].replace(9, np.nan)
+            O.loc[:, k] = O[k].replace(8, np.nan)
+            O.loc[:, k] = O[k].astype("category")
+        else:
+            O.loc[:, k] = O[k].replace(888, np.nan)
+    O = O.replace([-np.inf, np.inf], np.nan)
 
-    o_cols = pd.get_dummies(O[list(M2_cols_D.keys())]).drop(O_drop, 1).columns.values
-    x_cols = pd.get_dummies(O[list(M2_cols_X.keys())]).drop(X_drop, 1).columns.values
+    o_cols = pd.get_dummies(O[list(M2_cols_D.keys())]).columns.values
+    x_cols = pd.get_dummies(O[list(M2_cols_X.keys())]).columns.values
 
     O = pd.get_dummies(O)
-    O = O.drop(columns=[*X_drop, *O_drop])  # drop for too low variance
 
     DATA = X.merge(O, on="RECIPID", how="left")
 
