@@ -48,12 +48,11 @@ def test_survival_xgboost_plugin_fit_predict_ci() -> None:
         int(T[Y.iloc[:] == 1].quantile(0.75)),
     ]
 
-    y_pred, y_upper, y_lower = test_plugin.fit(
+    y_pred, y_std = test_plugin.fit(
         X_train, T_train, Y_train, eval_times=eval_time_horizons
     ).predict(X_test, eval_time_horizons, return_ci=True)
 
     assert y_pred.shape == (Y_test.shape[0], len(eval_time_horizons))
-    assert y_upper.shape == (Y_test.shape[0], len(eval_time_horizons))
-    assert y_lower.shape == (Y_test.shape[0], len(eval_time_horizons))
-    assert (y_pred.values <= y_upper.values).all()
-    assert (y_pred.values >= y_lower.values).all()
+    assert y_std.shape == (Y_test.shape[0], len(eval_time_horizons))
+    assert (y_std.values <= 1).all()
+    assert (y_std.values >= 0).all()
