@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from organsync.models.confidentmatch import ConfidentMatch
-from organsync.models.linear import MELD, MELD3, MELD_na
+from organsync.models.linear import MELD, MELD3, UKELD, MELD_na
 from organsync.models.organite_network import OrganITE_Network
 from organsync.models.organsync_network import OrganSync_Network
 
@@ -25,6 +25,16 @@ def test_meldna_sanity() -> None:
     assert MELD_na().score(
         serum_bilirubin=1.9, inr=1.2, serum_creatinine=1.3, serum_sodium=115
     ) == pytest.approx(23, 0.1)
+
+
+def test_ukeld_sanity() -> None:
+    assert UKELD().score(
+        serum_bilirubin=0.3, serum_creatinine=0.7, inr=0.8, serum_sodium=136
+    ) == pytest.approx(28, 0.5)
+
+    assert UKELD().score(
+        serum_bilirubin=1.9, serum_creatinine=1.3, inr=1.2, serum_sodium=115
+    ) == pytest.approx(44, 0.1)
 
 
 def test_meld3_sanity() -> None:
