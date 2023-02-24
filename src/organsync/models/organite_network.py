@@ -180,7 +180,7 @@ class OrganITE_Network(pl.LightningModule):
         y_ = y_ * std + mean
 
         loss = torch.abs(y - y_)
-        self.log("test_loss - mean difference in days", loss, on_epoch=True)
+        self.log("test_loss - mean difference in days", loss.mean(), on_epoch=True)
         self.log("test_loss - RMSE", rmse, on_epoch=True)
 
         return loss
